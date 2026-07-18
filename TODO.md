@@ -29,7 +29,7 @@ FINALLY:          C9 together
 ## Daril — web/src/ui + store + pages + components, CLAUDE.md/TODO.md, merges  (branch prefix `daril/`)
 - [ ] C4 (after Hoan's fix + Emmanuel's engine merge): single confirmedProfile store — all derived values (annualization, comparison, checklist, packet preview) computed from it, no cached copies; profileVersion + change log already in place; replace static FIELD_DEPENDENTS map (web/src/lib/field-meta.ts) with the real engine recompute list; blocked calculations rendered as calm info panels with plain-language reasons. Demonstrate propagation: correct gross_pay → screenshot updated annualization, comparison, checklist, packet preview.
 - [ ] C6 UI: "Understand" panel — question box wired to Hoan's /rules/ask; threshold numbers shown in the UI come from engine/rules.json, never from LLM text; refusals/abstentions styled as info panels.
-- [ ] C7: consent notice at upload (what is read / why / retention / deletion).
+- [x] C7: consent notice at upload (what is read / why / retention / deletion) — info panel above the dropzone on UploadPage; replaced the old "How your document is handled" blurbs; screenshots reviewed 1280/380.
 - [ ] Merges: every PR same-day; tag `vertical-slice` when Phase 5 completes; keep main runnable.
 
 ## Done (compressed history — see git log for detail)

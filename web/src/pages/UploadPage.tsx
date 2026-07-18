@@ -1,7 +1,7 @@
 // Upload screen: real empty state, drag/drop + keyboard-accessible file input,
 // named skeleton state ("Reading your document…") with aria-live completion.
 import { useRef, useState } from "react";
-import { FileUp, ShieldCheck, Trash2, Eye } from "lucide-react";
+import { FileUp, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +60,44 @@ export function UploadPage() {
           delete everything at any time.
         </p>
       </header>
+
+      {/* Consent notice (C7): what is read, why, retention, deletion —
+          shown before any upload, styled as info, never as a warning. */}
+      <section
+        aria-labelledby="consent-heading"
+        className="rounded-lg border border-status-info/20 bg-status-info-bg p-4"
+      >
+        <div className="flex items-start gap-2.5">
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-status-info" />
+          <div className="flex flex-col gap-2">
+            <h2 id="consent-heading" className="text-sm font-semibold text-status-info">
+              Before you upload — what happens to your document
+            </h2>
+            <ul className="flex flex-col gap-1.5 text-sm text-body">
+              <li>
+                <strong className="font-medium text-ink">What we read:</strong> only the
+                values an application needs — pay amounts, dates, pay schedule, employer,
+                and document type. Anything else on the page is ignored.
+              </li>
+              <li>
+                <strong className="font-medium text-ink">Why:</strong> so you can check
+                every value against the document and build your packet. This tool
+                prepares your application — it never makes a decision about it.
+              </li>
+              <li>
+                <strong className="font-medium text-ink">How long we keep it:</strong>{" "}
+                for this session only, on the server this app runs with. Your document is
+                never sent anywhere else.
+              </li>
+              <li>
+                <strong className="font-medium text-ink">Deleting:</strong> "Delete
+                everything" removes your files and every value read from them,
+                immediately and for real.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       {phase.kind === "error" && (
         <Alert role="alert" className="border-status-blocking/30 bg-status-blocking-bg text-status-blocking">
@@ -135,27 +173,6 @@ export function UploadPage() {
         </CardContent>
       </Card>
 
-      <section aria-label="How your document is handled" className="grid gap-4 sm:grid-cols-3">
-        {[
-          {
-            icon: Eye,
-            text: "We read values off the page and show you exactly where each one came from.",
-          },
-          {
-            icon: ShieldCheck,
-            text: "Nothing counts until you confirm it. You stay in control of every value.",
-          },
-          {
-            icon: Trash2,
-            text: "Delete your session at any time — files and everything derived from them are removed.",
-          },
-        ].map(({ icon: Icon, text }) => (
-          <div key={text} className="flex items-start gap-3">
-            <Icon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
-            <p className="text-sm text-body">{text}</p>
-          </div>
-        ))}
-      </section>
     </main>
   );
 }
