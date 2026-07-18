@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
-import { DoorOpen } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 import { StyleGuide } from "@/ui/StyleGuide";
+import { UploadPage } from "@/pages/UploadPage";
+import { ReviewPage } from "@/pages/ReviewPage";
+import { ReviewProvider } from "@/store/review";
 
 function useHashRoute() {
   const [hash, setHash] = useState(window.location.hash);
@@ -14,19 +17,16 @@ function useHashRoute() {
 
 export default function App() {
   const hash = useHashRoute();
-  if (hash === "#/style-guide") return <StyleGuide />;
+
+  let screen;
+  if (hash === "#/style-guide") screen = <StyleGuide />;
+  else if (hash === "#/review") screen = <ReviewPage />;
+  else screen = <UploadPage />;
 
   return (
-    <main className="mx-auto flex max-w-(--container-reading) flex-col items-center gap-4 px-6 py-24 text-center">
-      <DoorOpen aria-hidden="true" className="size-10 text-primary" />
-      <h1 className="text-2xl">RealDoor</h1>
-      <p className="max-w-md text-body">
-        Get your rental application ready — with every value checked by you.
-        The upload screen arrives in the next build phase.
-      </p>
-      <a href="#/style-guide" className="text-sm text-primary underline underline-offset-4">
-        View the style guide
-      </a>
-    </main>
+    <ReviewProvider>
+      {screen}
+      <Toaster position="bottom-right" duration={6000} />
+    </ReviewProvider>
   );
 }

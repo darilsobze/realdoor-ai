@@ -13,3 +13,7 @@ test-results/
 *.log
 .DS_Store
 Thumbs.db
+
+# local screenshot/debug output
+/.playwright-mcp/
+/*.png

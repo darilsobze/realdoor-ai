@@ -2,6 +2,9 @@
 
 Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 
+## Known bugs
+- [ ] Extraction over-abstains on stub_clean.pdf (4/7 abstained — document_type shouldn't be token-matched; date normalization/matching too strict). Fix before C4, since the correction demo and gold-set accuracy depend on dates extracting.
+
 ## Phase 0–2 · Setup
 - [x] Node 18+ (v24), Claude Code installed and logged in
 - [x] Vite React TS scaffold in web/, Tailwind v4, shadcn/ui (radix), zod, react-pdf, pdf-lib, vitest, playwright
@@ -19,10 +22,10 @@ Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 ## Phase 5 · Vertical slice  ← tag `vertical-slice` when done
 - [x] server: POST /session, upload, extract, page render, audit, DELETE /session (real deletion, cross-session isolation) — 8 integration tests green
 - [x] OCR + schema-constrained LLM extraction + bbox mapping + confidence rule — OpenAI gpt-5-mini (structured outputs strict, page image + OCR text) behind server/src/extraction/provider.ts (Anthropic provider kept for switch-back); live proof green on stub_clean: 5 proposed incl. gross_pay $1,580.00 exact/high, 1 honest abstention (OCR-garbled date) → re-run any time with `cd server && npm run prove`
-- [ ] Field review UI with evidence highlights, confirm/correct
+- [x] Field review UI with evidence highlights, confirm/correct — upload + review screens per design tokens; document viewer (server PNG render + exact bbox overlay, 2px primary outline + scrim) left, field cards right; uncertainty center with jump-links; keyboard path verified (tab order, dialog focus trap + focus return to card via onCloseAutoFocus); screenshots reviewed at 1280/380
 - [ ] engine/: annualize, sum, compare — pure + unit tests passing
 - [ ] Single confirmed-profile store; downstream propagation verified (correct one field → everything updates)
-- [ ] "What will update" preview before confirming a correction
+- [x] "What will update" preview before confirming a correction — dialog lists recomputed outputs (static FIELD_DEPENDENTS map for now; C4 replaces it with the real engine recompute list), old→new values formatted, explicit Confirm; version-bump toast "Profile updated to vN — k items recomputed" (6s, verified visible)
 - [ ] Calculations blocked on unconfirmed/unknown-frequency inputs, with plain-language explanation
 - [ ] Checklist engine vs gold.json (statuses icon+text)
 - [ ] Packet preview (renter-selected attachments) + PDF download, disclaimer included
