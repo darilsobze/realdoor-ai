@@ -11,7 +11,8 @@ import {
   type FieldName,
 } from "../../../web/src/contracts/index.ts";
 import { ocrPdf, type OcrPage } from "../ocr.ts";
-import { EXTRACTION_VERSION, extractFields, type LlmExtraction } from "./claude.ts";
+import { extractFields } from "./extract.ts";
+import { EXTRACTION_VERSION, type LlmExtraction } from "./schema.ts";
 import { matchValueToTokens } from "./match.ts";
 import { normalizeField } from "./normalize.ts";
 
@@ -55,20 +56,19 @@ function buildFields(
   const seen = new Set<FieldName>();
 
   for (const f of llm.fields) {
-    if (seen.has(f.field_name)) continue; // first occurrence wins; duplicates need renter review anyway
-    seen.add(f.field_name);
+    const fieldName = f.field_name as FieldName;
+    if (seen.has(fieldName)) continue; // first occurrence wins; duplicates need renter review anyway
+    seen.add(fieldName);
 
     const pageWords = pages.find((p) => p.page === f.page)?.words ?? [];
     const match = matchValueToTokens(f.raw_text, pageWords);
-
-    // document_type raw_text is heading evidence; the value itself is the enum.
-    const { value, unit } = normalizeField(f.field_name, f.raw_text);
+    const { value, unit } = normalizeField(fieldName, f.raw_text);
 
     if (match.tier === "none") {
       out.push(
         abstained(
           documentId,
-          f.field_name,
+          fieldName,
           "The value could not be located in the document text, so it cannot be shown with evidence.",
         ),
       );
@@ -78,7 +78,7 @@ function buildFields(
       out.push(
         abstained(
           documentId,
-          f.field_name,
+          fieldName,
           "The text was found but could not be read as a valid value.",
         ),
       );
@@ -88,7 +88,7 @@ function buildFields(
     out.push({
       id: randomUUID(),
       document_id: documentId,
-      field_name: f.field_name,
+      field_name: fieldName,
       raw_text: f.raw_text,
       model_proposed_value: f.raw_text,
       normalized_value: value,
@@ -103,10 +103,42 @@ function buildFields(
     });
   }
 
-  // Expected-but-missing fields become explicit abstentions.
-  const docType = out.find((f) => f.field_name === "document_type")?.normalized_value;
-  const expected = typeof docType === "string" ? EXPECTED_FIELDS[docType as DocumentType] : undefined;
-  for (const field of expected ?? []) {
+  // document_type is a classification; its evidence is the verbatim heading.
+  const evidence = llm.document_type_evidence.trim();
+  const evidencePage = pages[0];
+  const evidenceMatch = evidence
+    ? matchValueToTokens(evidence, evidencePage?.words ?? [])
+    : null;
+  if (evidenceMatch && evidenceMatch.tier !== "none") {
+    out.push({
+      id: randomUUID(),
+      document_id: documentId,
+      field_name: "document_type",
+      raw_text: evidence,
+      model_proposed_value: llm.document_type,
+      normalized_value: llm.document_type,
+      unit: null,
+      page: evidencePage.page,
+      bbox: evidenceMatch.bbox,
+      confidence: evidenceMatch.confidence,
+      confidence_tier: evidenceMatch.tier,
+      state: "proposed",
+      abstention_reason: null,
+      extraction_version: EXTRACTION_VERSION,
+    });
+  } else {
+    out.push(
+      abstained(
+        documentId,
+        "document_type",
+        "The document type could not be shown with heading evidence.",
+      ),
+    );
+  }
+
+  // Expected-but-missing fields become explicit abstentions (based on the
+  // model's classification, whether or not its evidence matched).
+  for (const field of EXPECTED_FIELDS[llm.document_type as DocumentType] ?? []) {
     if (!seen.has(field)) {
       out.push(
         abstained(documentId, field, "This value could not be read from the document."),
@@ -122,7 +154,9 @@ export async function extractDocument(
   pdfData: Uint8Array,
 ): Promise<ExtractionResult> {
   const pages = await ocrPdf(pdfData);
-  const llm = await extractFields(pages.map((p) => ({ page: p.page, text: p.text })));
+  const llm = await extractFields(
+    pages.map((p) => ({ page: p.page, text: p.text, png: p.png })),
+  );
   const fields = buildFields(documentId, llm, pages).map((f) => ExtractedFieldSchema.parse(f));
   return ExtractionResultSchema.parse({
     document_id: documentId,

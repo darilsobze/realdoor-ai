@@ -120,7 +120,7 @@ describe("page render", () => {
 });
 
 describe("extraction endpoint configuration", () => {
-  it.skipIf(!!process.env.ANTHROPIC_API_KEY)(
+  it.skipIf(!!process.env.OPENAI_API_KEY)(
     "returns 503 EXTRACTION_UNAVAILABLE when no API key is configured",
     async () => {
       const id = await newSession();

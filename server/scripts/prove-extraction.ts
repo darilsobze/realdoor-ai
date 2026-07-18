@@ -7,21 +7,19 @@ import { readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractDocument } from "../src/extraction/pipeline.ts";
+import { provider } from "../src/extraction/provider.ts";
 import { shutdownOcr } from "../src/ocr.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const defaultPdf = join(here, "..", "..", "data", "synthetic-docs", "stub_clean.pdf");
 const pdfPath = process.argv[2] ? resolve(process.argv[2]) : defaultPdf;
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error(
-    "ANTHROPIC_API_KEY is not set.\n" +
-      "Copy server/.env.example to server/.env and add your key, then re-run: npm run prove",
-  );
+if (!provider.isConfigured()) {
+  console.error(`Extraction provider "${provider.name}" is not configured.\n${provider.configurationHint}\nThen re-run: npm run prove`);
   process.exit(1);
 }
 
-console.error(`Extracting: ${pdfPath}`);
+console.error(`Extracting: ${pdfPath} (provider: ${provider.name})`);
 const started = Date.now();
 try {
   const result = await extractDocument("proof-doc-1", new Uint8Array(readFileSync(pdfPath)));

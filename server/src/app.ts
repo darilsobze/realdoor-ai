@@ -4,7 +4,8 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
 import { readFile } from "node:fs/promises";
-import { ExtractionAbstained } from "./extraction/claude.ts";
+import { provider } from "./extraction/provider.ts";
+import { ExtractionAbstained } from "./extraction/schema.ts";
 import { extractDocument } from "./extraction/pipeline.ts";
 import { renderPdfPages } from "./ocr.ts";
 import { appendAudit, readAudit } from "./audit.ts";
@@ -97,7 +98,7 @@ export function createApp() {
   app.post("/session/:id/documents/:docId/extract", async (req, res) => {
     const session = requireSession(req);
     const pdfPath = requireDocument(session, req.params.docId);
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!provider.isConfigured()) {
       throw new ApiError(
         503,
         "EXTRACTION_UNAVAILABLE",

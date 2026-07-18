@@ -18,7 +18,7 @@ Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 
 ## Phase 5 · Vertical slice  ← tag `vertical-slice` when done
 - [x] server: POST /session, upload, extract, page render, audit, DELETE /session (real deletion, cross-session isolation) — 8 integration tests green
-- [~] OCR + schema-constrained Claude extraction + bbox mapping + confidence rule — code complete, OCR/bbox/normalization verified against stub_clean; LIVE proof blocked on ANTHROPIC_API_KEY in server/.env → run `cd server && npm run prove`
+- [~] OCR + schema-constrained LLM extraction + bbox mapping + confidence rule — code complete, OCR/bbox/normalization verified against stub_clean; runs on OpenAI gpt-5-mini (structured outputs, page image + OCR text) behind server/src/extraction/provider.ts (Anthropic provider kept for switch-back); LIVE proof blocked on OPENAI_API_KEY in server/.env → run `cd server && npm run prove`
 - [ ] Field review UI with evidence highlights, confirm/correct
 - [ ] engine/: annualize, sum, compare — pure + unit tests passing
 - [ ] Single confirmed-profile store; downstream propagation verified (correct one field → everything updates)
@@ -28,7 +28,7 @@ Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 - [ ] Packet preview (renter-selected attachments) + PDF download, disclaimer included
 
 ## Phase 6 · Understand
-- [ ] /rules + /rules/ask endpoints (full corpus in context, citation + effective date, abstain when uncovered)
+- [ ] /rules + /rules/ask endpoints (full corpus in context, citation + effective date, abstain when uncovered) — the /rules/ask LLM call also uses OpenAI (same provider seam + OPENAI_API_KEY as extraction)
 - [ ] UI threshold numbers sourced from engine/rules.json, never from LLM text
 - [ ] Eligibility-question refusal + redirect wired
 

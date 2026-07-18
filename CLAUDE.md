@@ -39,8 +39,8 @@ confirmed · needs_confirmation · missing · expired · conflicting · not_appl
 ## Stack
 - Frontend: React + Vite + TypeScript, Tailwind, shadcn/ui (Radix), react-pdf for document display, lucide-react icons.
 - Backend: thin Node (Express/Hono) server; per-session temp directories; no database needed.
-- Extraction: tesseract.js OCR (word-level boxes) + Claude API (claude-sonnet-4-6) with tool-use/structured output validated by zod against the allowlist. Map extracted values back to OCR tokens for exact bounding boxes. Confidence: exact token match = high, fuzzy = medium, none = abstain.
-- Rules Q&A: pass the full frozen corpus in context (no RAG, no vector DB). Answer only from corpus, always with citation + effective date.
+- Extraction: tesseract.js OCR (word-level boxes) + OpenAI API (gpt-5-mini, chat completions with Structured Outputs strict:true, page image + OCR text) validated by zod against the allowlist. The vendor sits behind `server/src/extraction/provider.ts` (Anthropic provider kept for switch-back). Key = OPENAI_API_KEY in server/.env only, never exposed to web/. Map extracted values back to OCR tokens for exact bounding boxes. Confidence: exact token match = high, fuzzy = medium, none = abstain.
+- Rules Q&A: pass the full frozen corpus in context (no RAG, no vector DB) — also via the OpenAI provider seam. Answer only from corpus, always with citation + effective date.
 - Packet: pdf-lib. Tests: Vitest for engine, Playwright + @axe-core/playwright for journey and accessibility.
 
 ## Accessibility (WCAG 2.2 AA target — 15% of score)
