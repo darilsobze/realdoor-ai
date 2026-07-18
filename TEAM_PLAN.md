@@ -3,9 +3,8 @@
 > Commit this file to the repo root. The conflict-prevention rule is simple: **you only edit directories you own.** Cross-boundary changes go through the owner. Contracts are frozen (see below).
 
 ## Where the project stands
-Done: contracts + design tokens + official 2026 data + fixtures (Phase 4), server with OCR→LLM extraction, sessions, real deletion (C2, on OpenAI), C3 review UI (commit df47921).
-Next up: extraction bug fix (Hoan) + engine functions (Emmanuel) → C4 engine/propagation (Daril) → C5 checklist+packet → C6 rules Q&A → C7 safety panel → C8 accessibility → C9 metrics + demo.
-Known bug (logged in TODO): extraction over-abstains on clean stubs (document_type token-matched wrongly; date normalization too strict). Must be fixed before C4.
+Done: contracts + design tokens + official 2026 data + fixtures (Phase 4), server with OCR→LLM extraction, sessions, real deletion (C2, on OpenAI), C3 review UI (commit df47921), and Hoan's extraction over-abstention fix (document-type classification path + split-date normalization, verified with 11 server tests and 7 proposed fields on `stub_clean.pdf`).
+Next up: engine functions (Emmanuel) → C4 engine/propagation (Daril) → C5 checklist+packet → C6 rules Q&A → C7 safety panel → C8 accessibility → C9 metrics + demo.
 
 ## Roles and ownership
 
@@ -18,7 +17,7 @@ The only person who merges to main and the only person who edits CLAUDE.md/TODO.
 
 ### Hoan — Backend, extraction & rules (owns: `server/`, `data/rules/`)
 Runs their own Claude Code sessions scoped to server work ("work only inside server/ and data/rules/; read CLAUDE.md and docs/api.md first").
-- FIRST TASK (unblocks C4): fix the over-abstention bug — document_type gets a classification path (no token match), multi-token date matching, regression test asserting ≥6 proposed on stub_clean. Small PR, fast merge.
+- DONE: fixed the over-abstention bug — document_type now has a classification path without requiring a token match, split-token dates normalize correctly, and regression coverage asserts ≥6 proposed fields on stub_clean. Verified with `npm test`, `npm run typecheck`, and `npm run prove` (7 proposed, 0 abstained).
 - C6: /rules + /rules/ask endpoints — full frozen corpus in context, citations with effective date (or corpus freeze date when null), abstain out-of-corpus, eligibility refusal
 - C7 server half: injection tests (document + filename), cross-session rejection test, audit-log hygiene, deletion proof endpoint behavior
 - Runs extraction against the organizer's 24 gold docs and reports accuracy/abstention numbers to Emmanuel's metrics page

@@ -103,38 +103,31 @@ function buildFields(
     });
   }
 
-  // document_type is a classification; its evidence is the verbatim heading.
+  // document_type is a classification, not a verbatim extracted value. Keep
+  // it proposed even when the optional heading evidence cannot be matched;
+  // confidence stays "none" so the renter is clearly asked to review it.
   const evidence = llm.document_type_evidence.trim();
   const evidencePage = pages[0];
   const evidenceMatch = evidence
     ? matchValueToTokens(evidence, evidencePage?.words ?? [])
     : null;
-  if (evidenceMatch && evidenceMatch.tier !== "none") {
-    out.push({
-      id: randomUUID(),
-      document_id: documentId,
-      field_name: "document_type",
-      raw_text: evidence,
-      model_proposed_value: llm.document_type,
-      normalized_value: llm.document_type,
-      unit: null,
-      page: evidencePage.page,
-      bbox: evidenceMatch.bbox,
-      confidence: evidenceMatch.confidence,
-      confidence_tier: evidenceMatch.tier,
-      state: "proposed",
-      abstention_reason: null,
-      extraction_version: EXTRACTION_VERSION,
-    });
-  } else {
-    out.push(
-      abstained(
-        documentId,
-        "document_type",
-        "The document type could not be shown with heading evidence.",
-      ),
-    );
-  }
+  const hasMatchedEvidence = evidenceMatch && evidenceMatch.tier !== "none";
+  out.push({
+    id: randomUUID(),
+    document_id: documentId,
+    field_name: "document_type",
+    raw_text: evidence || null,
+    model_proposed_value: llm.document_type,
+    normalized_value: llm.document_type,
+    unit: null,
+    page: hasMatchedEvidence ? evidencePage.page : null,
+    bbox: hasMatchedEvidence ? evidenceMatch.bbox : null,
+    confidence: hasMatchedEvidence ? evidenceMatch.confidence : null,
+    confidence_tier: hasMatchedEvidence ? evidenceMatch.tier : "none",
+    state: "proposed",
+    abstention_reason: null,
+    extraction_version: EXTRACTION_VERSION,
+  });
 
   // Expected-but-missing fields become explicit abstentions (based on the
   // model's classification, whether or not its evidence matched).

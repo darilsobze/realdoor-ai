@@ -26,7 +26,7 @@ export function parseDate(raw: string): string | null {
   const t = raw.trim();
   let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (m) return isoOrNull(+m[1], +m[2], +m[3]);
-  m = t.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  m = t.match(/^(\d{1,2})\s*[/-]\s*(\d{1,2})\s*[/-]\s*(\d{4})$/);
   if (m) return isoOrNull(+m[3], +m[1], +m[2]);
   m = t.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/);
   if (m) {
