@@ -17,8 +17,8 @@ Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 - [x] Synthetic fixtures generated (web/scripts/generate-fixtures.mjs → data/synthetic-docs/): stub_clean, stub_to_correct (mild raster degradation, amount OCRs at ~10 conf), stub_degraded (heavy, amount unreadable → abstention), benefit_letter, conflict, address_expired, injection — degradation verified via scripts/check-ocr-degradation.mjs
 
 ## Phase 5 · Vertical slice  ← tag `vertical-slice` when done
-- [ ] server: POST /session, upload, extract, DELETE /session (real deletion)
-- [ ] OCR + schema-constrained Claude extraction + bbox mapping + confidence rule
+- [x] server: POST /session, upload, extract, page render, audit, DELETE /session (real deletion, cross-session isolation) — 8 integration tests green
+- [~] OCR + schema-constrained Claude extraction + bbox mapping + confidence rule — code complete, OCR/bbox/normalization verified against stub_clean; LIVE proof blocked on ANTHROPIC_API_KEY in server/.env → run `cd server && npm run prove`
 - [ ] Field review UI with evidence highlights, confirm/correct
 - [ ] engine/: annualize, sum, compare — pure + unit tests passing
 - [ ] Single confirmed-profile store; downstream propagation verified (correct one field → everything updates)
@@ -44,7 +44,7 @@ Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 - [ ] One manual keyboard-only run by a human
 
 ## Phase 9 · Evaluation & demo
-- [ ] Swap in official organizer data (rules, gold fields, checklist) — remove PLACEHOLDER markers. NOTE: official frozen 2026 data is ALREADY in realdoor-hackathon-starter-pack/ (data/mtsp_2026_boston_cambridge_quincy.csv, rules/rule_corpus.jsonl, evaluation/application_checklists.json) — swap can happen any time after Phase 5
+- [x] Swap in official organizer data (done early, during C2): rules.json = frozen corpus + FY2026 MTSP 50%/60% tables (effective 2026-05-01, HUD source p.130, authority metadata); gold.json = organizer checklist + 60-day currency convention; fixture manifest (data/synthetic-docs/manifest.json) = 24 organizer PDFs + injection.pdf + conflict.pdf. NOTE: demo-script.md still references dropped placeholder requirements (photo_id, address_verification) — reconcile demo script during C9
 - [ ] Metrics page: field accuracy, source-box accuracy, abstention rate, test results
 - [ ] docs/risk-note.md finalized (feature register, limitations, license manifest)
 - [ ] Demo rehearsed twice per docs/demo-script.md; backup recording captured

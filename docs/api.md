@@ -29,7 +29,7 @@ Base URL (dev): `http://localhost:3001`
 | GET | `/session/:id/audit` | audit log | consent, uploads, corrections, rule version, export, deletion — never raw document content |
 
 ## Errors
-JSON `{ error: { code, message, fieldRef? } }`. Codes: `SESSION_NOT_FOUND` (404), `VALIDATION_FAILED` (422, includes which allowlist rule rejected), `EXTRACTION_ABSTAINED` (200 with abstain status — not an error), `RULE_NOT_FOUND` (200 with `abstained: true`). Error messages must be understandable and, in the UI, programmatically linked to the relevant field (WCAG).
+JSON `{ error: { code, message, fieldRef? } }`. Codes: `SESSION_NOT_FOUND` (404), `DOCUMENT_NOT_FOUND` (404 — includes a valid docId presented against the wrong session), `PAGE_NOT_FOUND` (404), `VALIDATION_FAILED` (422, `fieldRef` names the offending field), `EXTRACTION_UNAVAILABLE` (503 — server has no API key configured), `RULE_NOT_FOUND` (200 with `abstained: true`), `INTERNAL` (500 — generic; server errors never echo prompt or document contents). Extraction abstention is NOT an error: 200 with an empty/abstained `fields` array. Error messages must be understandable and, in the UI, programmatically linked to the relevant field (WCAG).
 
 ## Deliberately absent
 No endpoint sends the packet anywhere. No endpoint returns an eligibility result. Packet generation happens client-side from confirmed data (or, if moved server-side later, remains download-only).
