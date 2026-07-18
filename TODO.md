@@ -18,7 +18,7 @@ Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 
 ## Phase 5 · Vertical slice  ← tag `vertical-slice` when done
 - [x] server: POST /session, upload, extract, page render, audit, DELETE /session (real deletion, cross-session isolation) — 8 integration tests green
-- [~] OCR + schema-constrained LLM extraction + bbox mapping + confidence rule — code complete, OCR/bbox/normalization verified against stub_clean; runs on OpenAI gpt-5-mini (structured outputs, page image + OCR text) behind server/src/extraction/provider.ts (Anthropic provider kept for switch-back); LIVE proof blocked on OPENAI_API_KEY in server/.env → run `cd server && npm run prove`
+- [x] OCR + schema-constrained LLM extraction + bbox mapping + confidence rule — OpenAI gpt-5-mini (structured outputs strict, page image + OCR text) behind server/src/extraction/provider.ts (Anthropic provider kept for switch-back); live proof green on stub_clean: 5 proposed incl. gross_pay $1,580.00 exact/high, 1 honest abstention (OCR-garbled date) → re-run any time with `cd server && npm run prove`
 - [ ] Field review UI with evidence highlights, confirm/correct
 - [ ] engine/: annualize, sum, compare — pure + unit tests passing
 - [ ] Single confirmed-profile store; downstream propagation verified (correct one field → everything updates)
