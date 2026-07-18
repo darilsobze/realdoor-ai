@@ -1,0 +1,51 @@
+{
+  "checklist_version": "gold_checklist_2026.0-placeholder",
+  "placeholder": true,
+  "requirements": [
+    {
+      "requirement_id": "pay_stubs_recent",
+      "title": "Two recent pay stubs",
+      "description": "Your two most recent pay stubs, no older than 60 days, so the office can see your current pay.",
+      "accepted_document_types": ["pay_stub"],
+      "freshness_days": 60,
+      "min_count": 2,
+      "kind": "document"
+    },
+    {
+      "requirement_id": "benefit_letter_current",
+      "title": "Benefit award letter",
+      "description": "If you receive benefit payments, the letter that states your benefit amount, from the current benefit year.",
+      "accepted_document_types": ["benefit_letter"],
+      "freshness_days": 365,
+      "min_count": 1,
+      "kind": "document"
+    },
+    {
+      "requirement_id": "photo_id",
+      "title": "Photo ID",
+      "description": "A government photo ID for each adult, such as a driver's license or passport.",
+      "accepted_document_types": ["photo_id"],
+      "freshness_days": null,
+      "min_count": 1,
+      "kind": "document"
+    },
+    {
+      "requirement_id": "address_verification",
+      "title": "Proof of current address",
+      "description": "A utility bill, lease, or bank statement showing your current address, no older than 90 days.",
+      "accepted_document_types": ["utility_bill", "lease", "bank_statement"],
+      "freshness_days": 90,
+      "min_count": 1,
+      "kind": "document"
+    },
+    {
+      "requirement_id": "household_size_confirmation",
+      "title": "Household size",
+      "description": "You confirm how many people will live in the home. This picks the right row in the income limit table.",
+      "accepted_document_types": [],
+      "freshness_days": null,
+      "min_count": 1,
+      "kind": "attestation"
+    }
+  ]
+}

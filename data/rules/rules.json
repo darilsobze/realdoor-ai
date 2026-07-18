@@ -1,0 +1,68 @@
+{
+  "corpus_version": "2026.0-placeholder",
+  "frozen_at": "2026-07-18",
+  "placeholder": true,
+  "rules": [
+    {
+      "rule_id": "lihtc_income_limit_60pct_2026",
+      "title": "Income limit table, 60% MTSP, household sizes 1-6",
+      "text": "To live in a home funded by this program, the money everyone in your household earns together in a year (before taxes) is compared against a published limit. The limit depends on how many people live with you. ALL NUMBERS BELOW ARE PLACEHOLDERS and must never be presented as official.",
+      "citation": {
+        "program_id": "LIHTC",
+        "metro_id": "boston_cambridge_quincy_ma_nh_hmfa",
+        "rule_year": 2026,
+        "rule_version": "2026.0-placeholder",
+        "effective_date": "2026-05-01",
+        "official_source": "PLACEHOLDER - to be replaced by HUD FY2026 MTSP income limits table (realdoor-hackathon-starter-pack/data/mtsp_2026_boston_cambridge_quincy.csv)",
+        "page": null,
+        "section": "PLACEHOLDER-section",
+        "table_id": "PLACEHOLDER-mtsp-2026-60pct"
+      },
+      "placeholder": true,
+      "thresholds": [
+        { "household_size": 1, "annual_income_limit_usd": 50000, "placeholder_note": "PLACEHOLDER - TO BE REPLACED BY OFFICIAL 2026 MTSP TABLE" },
+        { "household_size": 2, "annual_income_limit_usd": 57000, "placeholder_note": "PLACEHOLDER - TO BE REPLACED BY OFFICIAL 2026 MTSP TABLE" },
+        { "household_size": 3, "annual_income_limit_usd": 64000, "placeholder_note": "PLACEHOLDER - TO BE REPLACED BY OFFICIAL 2026 MTSP TABLE" },
+        { "household_size": 4, "annual_income_limit_usd": 71000, "placeholder_note": "PLACEHOLDER - TO BE REPLACED BY OFFICIAL 2026 MTSP TABLE" },
+        { "household_size": 5, "annual_income_limit_usd": 78000, "placeholder_note": "PLACEHOLDER - TO BE REPLACED BY OFFICIAL 2026 MTSP TABLE" },
+        { "household_size": 6, "annual_income_limit_usd": 85000, "placeholder_note": "PLACEHOLDER - TO BE REPLACED BY OFFICIAL 2026 MTSP TABLE" }
+      ]
+    },
+    {
+      "rule_id": "lihtc_income_counting_2026",
+      "title": "What income is counted",
+      "text": "Count the money each adult in the household expects to earn over the next 12 months before taxes. This includes wages from a job (gross pay) and regular benefit payments. PLACEHOLDER summary - the official counting rules will replace this text.",
+      "citation": {
+        "program_id": "LIHTC",
+        "metro_id": "boston_cambridge_quincy_ma_nh_hmfa",
+        "rule_year": 2026,
+        "rule_version": "2026.0-placeholder",
+        "effective_date": "2026-05-01",
+        "official_source": "PLACEHOLDER - to be replaced by frozen rule corpus (realdoor-hackathon-starter-pack/rules/rule_corpus.jsonl)",
+        "page": null,
+        "section": "PLACEHOLDER-section",
+        "table_id": null
+      },
+      "placeholder": true,
+      "thresholds": null
+    },
+    {
+      "rule_id": "lihtc_annualization_2026",
+      "title": "How pay is annualized",
+      "text": "Pay is converted to a yearly amount using the pay schedule: weekly pay times 52, biweekly (every two weeks) times 26, semimonthly (twice a month) times 24, monthly times 12. If the pay schedule is unknown, the yearly amount cannot be computed. PLACEHOLDER summary - the official method text will replace this.",
+      "citation": {
+        "program_id": "LIHTC",
+        "metro_id": "boston_cambridge_quincy_ma_nh_hmfa",
+        "rule_year": 2026,
+        "rule_version": "2026.0-placeholder",
+        "effective_date": "2026-05-01",
+        "official_source": "PLACEHOLDER - to be replaced by frozen rule corpus (realdoor-hackathon-starter-pack/rules/rule_corpus.jsonl)",
+        "page": null,
+        "section": "PLACEHOLDER-section",
+        "table_id": null
+      },
+      "placeholder": true,
+      "thresholds": null
+    }
+  ]
+}

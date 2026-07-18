@@ -3,17 +3,18 @@
 Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
 
 ## Phase 0–2 · Setup
-- [ ] Node 18+, Claude Code installed and logged in
-- [ ] Vite React TS scaffold in web/, Tailwind, shadcn/ui, zod, react-pdf, pdf-lib
+- [x] Node 18+ (v24), Claude Code installed and logged in
+- [x] Vite React TS scaffold in web/, Tailwind v4, shadcn/ui (radix), zod, react-pdf, pdf-lib, vitest, playwright
 - [x] CLAUDE.md, ARCHITECTURE.md, docs/ in place; challenge context in realdoor-hackathon-starter-pack/ (README, rules/RULES_README.md, governance/)
-- [ ] MCPs added: playwright, context7 (`claude mcp list` confirms)
-- [ ] git init + first commit
+- [x] MCPs added: playwright, context7 (registered; available from next session)
+- [x] git init + first commit
+- [x] Design tokens in web/src/index.css + dev style-guide route (#/style-guide), screenshot script (web/scripts/screenshot.mjs)
 
 ## Phase 4 · Contracts & placeholder data
-- [ ] zod schemas in web/src/contracts/ (ExtractedField, ConfirmedProfile, Rule, Calculation, ChecklistItem, Packet)
-- [ ] data/rules/rules.json — placeholder thresholds, full citation metadata, PLACEHOLDER markers
-- [ ] data/checklist/gold.json — 5 requirements incl. freshness rules
-- [ ] Synthetic fixtures generated (see docs/demo-script.md fixture list, incl. injection.pdf)
+- [x] zod schemas in web/src/contracts/ (ExtractedField strict/allowlist, ConfirmedProfile with profile_version + change_log, Rule, Calculation computed|blocked, ChecklistItem, Packet) + field state machine (proposed→confirmed | corrected→confirmed | rejected | unresolved | superseded) — 35 tests passing
+- [x] data/rules/rules.json — placeholder thresholds, full citation metadata, PLACEHOLDER markers
+- [x] data/checklist/gold.json — 5 requirements incl. freshness rules
+- [x] Synthetic fixtures generated (web/scripts/generate-fixtures.mjs → data/synthetic-docs/): stub_clean, stub_to_correct (mild raster degradation, amount OCRs at ~10 conf), stub_degraded (heavy, amount unreadable → abstention), benefit_letter, conflict, address_expired, injection — degradation verified via scripts/check-ocr-degradation.mjs
 
 ## Phase 5 · Vertical slice  ← tag `vertical-slice` when done
 - [ ] server: POST /session, upload, extract, DELETE /session (real deletion)
