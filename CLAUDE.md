@@ -34,7 +34,7 @@ confirmed · needs_confirmation · missing · expired · conflicting · not_appl
 - All derived values (annualized income, threshold comparison, checklist, packet) are computed from the single confirmed-profile store. No cached derived copies — corrections must propagate everywhere automatically.
 - Every rule carries: program_id, metro_id, rule_year (2026), rule_version, effective_date, official_source, page, section, table_id.
 - Every calculation records: inputs, units, formula string, formula_version, rounding rule, result, source rule id.
-- All numbers currently in `data/rules/rules.json` are PLACEHOLDERS until replaced by the official frozen 2026 MTSP tables. Never present placeholders as official.
+- `data/rules/rules.json` carries the OFFICIAL frozen FY2026 MTSP tables and rule corpus (corpus_version `2026-frozen-2026-07-18`, swapped in from the starter pack). Rules with authority `hackathon_simulation` are challenge conventions — never present them as official program rules. The canonical fixture set is `data/synthetic-docs/manifest.json` (24 organizer PDFs + injection.pdf + conflict.pdf).
 
 ## Stack
 - Frontend: React + Vite + TypeScript, Tailwind, shadcn/ui (Radix), react-pdf for document display, lucide-react icons.

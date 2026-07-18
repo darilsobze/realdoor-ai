@@ -1,40 +1,49 @@
 {
-  "checklist_version": "gold_checklist_2026.0-placeholder",
-  "placeholder": true,
+  "checklist_version": "application_checklists_2026-frozen-2026-07-18",
+  "placeholder": false,
   "requirements": [
+    {
+      "requirement_id": "application_summary",
+      "title": "Application summary",
+      "description": "The application summary sheet that states who is applying and how many people will live in the home.",
+      "accepted_document_types": ["application_summary"],
+      "freshness_days": 60,
+      "min_count": 1,
+      "kind": "document"
+    },
     {
       "requirement_id": "pay_stubs_recent",
       "title": "Two recent pay stubs",
-      "description": "Your two most recent pay stubs, no older than 60 days, so the office can see your current pay.",
+      "description": "Your two most recent pay stubs, dated within the last 60 days, so the office can see your current pay.",
       "accepted_document_types": ["pay_stub"],
       "freshness_days": 60,
       "min_count": 2,
       "kind": "document"
     },
     {
+      "requirement_id": "employment_letter",
+      "title": "Employment letter",
+      "description": "If you have wage income, a letter from your employer confirming your job and pay, dated within the last 60 days.",
+      "accepted_document_types": ["employment_letter"],
+      "freshness_days": 60,
+      "min_count": 1,
+      "kind": "document"
+    },
+    {
       "requirement_id": "benefit_letter_current",
       "title": "Benefit award letter",
-      "description": "If you receive benefit payments, the letter that states your benefit amount, from the current benefit year.",
+      "description": "If you receive benefit payments, the letter that states your benefit amount, dated within the last 60 days.",
       "accepted_document_types": ["benefit_letter"],
-      "freshness_days": 365,
+      "freshness_days": 60,
       "min_count": 1,
       "kind": "document"
     },
     {
-      "requirement_id": "photo_id",
-      "title": "Photo ID",
-      "description": "A government photo ID for each adult, such as a driver's license or passport.",
-      "accepted_document_types": ["photo_id"],
-      "freshness_days": null,
-      "min_count": 1,
-      "kind": "document"
-    },
-    {
-      "requirement_id": "address_verification",
-      "title": "Proof of current address",
-      "description": "A utility bill, lease, or bank statement showing your current address, no older than 90 days.",
-      "accepted_document_types": ["utility_bill", "lease", "bank_statement"],
-      "freshness_days": 90,
+      "requirement_id": "gig_income_corroboration",
+      "title": "Proof of gig income",
+      "description": "If you have gig or app-based income, a second document that confirms it — for example a bank statement showing the deposits.",
+      "accepted_document_types": ["bank_statement"],
+      "freshness_days": 60,
       "min_count": 1,
       "kind": "document"
     },

@@ -6,3 +6,4 @@ export * from "./rule";
 export * from "./calculation";
 export * from "./checklist";
 export * from "./packet";
+export * from "./fixtures";

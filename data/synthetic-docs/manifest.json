@@ -1,0 +1,266 @@
+{
+  "manifest_version": "fixtures-2026-07-18",
+  "organizer_gold_file": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl",
+  "fixtures": [
+    {
+      "fixture_id": "HH-001-D01",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-001_d01_application_summary.pdf",
+      "document_type": "application_summary",
+      "source": "organizer",
+      "household_id": "HH-001",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-001-D02",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-001_d02_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-001",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-001-D03",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-001_d03_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-001",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-001-D04",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-001_d04_employment_letter.pdf",
+      "document_type": "employment_letter",
+      "source": "organizer",
+      "household_id": "HH-001",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-002-D01",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-002_d01_application_summary.pdf",
+      "document_type": "application_summary",
+      "source": "organizer",
+      "household_id": "HH-002",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-002-D02",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-002_d02_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-002",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-002-D03",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-002_d03_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-002",
+      "rasterized": false,
+      "contains_adversarial_text": true,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-002-D04",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-002_d04_employment_letter.pdf",
+      "document_type": "employment_letter",
+      "source": "organizer",
+      "household_id": "HH-002",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-003-D01",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-003_d01_application_summary.pdf",
+      "document_type": "application_summary",
+      "source": "organizer",
+      "household_id": "HH-003",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-003-D02",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-003_d02_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-003",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-003-D03",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-003_d03_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-003",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-003-D04",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-003_d04_benefit_letter.pdf",
+      "document_type": "benefit_letter",
+      "source": "organizer",
+      "household_id": "HH-003",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-004-D01",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-004_d01_application_summary.pdf",
+      "document_type": "application_summary",
+      "source": "organizer",
+      "household_id": "HH-004",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-004-D02",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-004_d02_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-004",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-004-D03",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-004_d03_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-004",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-004-D04",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-004_d04_gig_statement.pdf",
+      "document_type": "gig_statement",
+      "source": "organizer",
+      "household_id": "HH-004",
+      "rasterized": false,
+      "contains_adversarial_text": true,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-005-D01",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-005_d01_application_summary.pdf",
+      "document_type": "application_summary",
+      "source": "organizer",
+      "household_id": "HH-005",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-005-D02",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-005_d02_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-005",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-005-D03",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-005_d03_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-005",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-005-D04",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-005_d04_employment_letter.pdf",
+      "document_type": "employment_letter",
+      "source": "organizer",
+      "household_id": "HH-005",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-006-D01",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-006_d01_application_summary.pdf",
+      "document_type": "application_summary",
+      "source": "organizer",
+      "household_id": "HH-006",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-006-D02",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-006_d02_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-006",
+      "rasterized": false,
+      "contains_adversarial_text": true,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-006-D03",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-006_d03_pay_stub.pdf",
+      "document_type": "pay_stub",
+      "source": "organizer",
+      "household_id": "HH-006",
+      "rasterized": true,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "HH-006-D04",
+      "path": "realdoor-hackathon-starter-pack/synthetic_documents/documents/hh-006_d04_benefit_letter.pdf",
+      "document_type": "benefit_letter",
+      "source": "organizer",
+      "household_id": "HH-006",
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": "realdoor-hackathon-starter-pack/synthetic_documents/gold/document_gold.jsonl"
+    },
+    {
+      "fixture_id": "ADV-INJECTION",
+      "path": "data/synthetic-docs/injection.pdf",
+      "document_type": "pay_stub",
+      "source": "generated",
+      "household_id": null,
+      "rasterized": false,
+      "contains_adversarial_text": true,
+      "gold_source": null
+    },
+    {
+      "fixture_id": "ADV-CONFLICT",
+      "path": "data/synthetic-docs/conflict.pdf",
+      "document_type": "benefit_letter",
+      "source": "generated",
+      "household_id": null,
+      "rasterized": false,
+      "contains_adversarial_text": false,
+      "gold_source": null
+    }
+  ]
+}

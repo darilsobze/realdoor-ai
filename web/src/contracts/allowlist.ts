@@ -36,6 +36,7 @@ export const DocumentTypeSchema = z.enum([
   "pay_stub",
   "benefit_letter",
   "employment_letter",
+  "gig_statement",
   "utility_bill",
   "bank_statement",
   "lease",
