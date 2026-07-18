@@ -1,57 +1,40 @@
-# TODO — build order (Claude Code: update this file as tasks complete; new sessions read this first)
+# TODO — grouped by owner (see TEAM_PLAN.md for roles + dependency map; Claude Code: update as tasks complete)
 
 Status legend: [ ] todo · [~] in progress · [x] done · [!] blocked
+Fences: work only in your owned directories · contracts frozen · only Daril edits this file (others: "TODO request" in the PR description).
 
-## Known bugs
-- [ ] Extraction over-abstains on stub_clean.pdf (4/7 abstained — document_type shouldn't be token-matched; date normalization/matching too strict). Fix before C4, since the correction demo and gold-set accuracy depend on dates extracting.
+## Dependency snapshot (from TEAM_PLAN.md)
+```
+NOW (parallel):   Hoan bug-fix → C6 rules     Emmanuel C5 engine+checklist (pure code)
+THEN:             Daril C4 propagation  (needs: Hoan's bug fix + Emmanuel's engine functions merged)
+THEN (parallel):  Emmanuel C5 packet UI + C7 panel    Hoan C7 server tests
+THEN:             Emmanuel C8 accessibility (needs all screens)
+FINALLY:          C9 together
+```
 
-## Phase 0–2 · Setup
-- [x] Node 18+ (v24), Claude Code installed and logged in
-- [x] Vite React TS scaffold in web/, Tailwind v4, shadcn/ui (radix), zod, react-pdf, pdf-lib, vitest, playwright
-- [x] CLAUDE.md, ARCHITECTURE.md, docs/ in place; challenge context in realdoor-hackathon-starter-pack/ (README, rules/RULES_README.md, governance/)
-- [x] MCPs added: playwright, context7 (registered; available from next session)
-- [x] git init + first commit
-- [x] Design tokens in web/src/index.css + dev style-guide route (#/style-guide), screenshot script (web/scripts/screenshot.mjs)
+## Hoan — server/ + data/rules/  (branch prefix `hoan/`)
+- [ ] FIRST TASK (unblocks Daril's C4) — fix extraction over-abstention on clean stubs: document_type gets a classification path (no token match), multi-token date matching (date normalization currently too strict), regression test asserting ≥6 proposed fields on stub_clean.pdf. Small PR, fast merge.
+- [ ] C6: /rules + /rules/ask endpoints — full frozen corpus in context (OpenAI, same provider seam + OPENAI_API_KEY as extraction), answer only from corpus, citation + effective date (corpus freeze date when effective_date is null), abstain when uncovered, eligibility-question refusal + redirect. Update docs/api.md in the same PR.
+- [ ] C7 (server half): injection tests (document text AND filename), cross-session ID rejection test, audit-log hygiene (no raw document content), deletion-proof endpoint behavior (delete → re-fetch → 404).
+- [ ] C9 input: run extraction against the organizer's 24 gold docs; report field accuracy / source-box accuracy / abstention numbers to Emmanuel for the metrics page.
 
-## Phase 4 · Contracts & placeholder data
-- [x] zod schemas in web/src/contracts/ (ExtractedField strict/allowlist, ConfirmedProfile with profile_version + change_log, Rule, Calculation computed|blocked, ChecklistItem, Packet) + field state machine (proposed→confirmed | corrected→confirmed | rejected | unresolved | superseded) — 35 tests passing
-- [x] data/rules/rules.json — placeholder thresholds, full citation metadata, PLACEHOLDER markers
-- [x] data/checklist/gold.json — 5 requirements incl. freshness rules
-- [x] Synthetic fixtures generated (web/scripts/generate-fixtures.mjs → data/synthetic-docs/): stub_clean, stub_to_correct (mild raster degradation, amount OCRs at ~10 conf), stub_degraded (heavy, amount unreadable → abstention), benefit_letter, conflict, address_expired, injection — degradation verified via scripts/check-ocr-degradation.mjs
+## Emmanuel — web/src/engine + checklist/packet + docs/ + data/checklist/  (branch prefix `emmanuel/`)
+- [ ] C5 engine (pure, unblocks Daril's C4): annualize(amount, frequency), sumIncomeSources, compareToThreshold(rule, householdSize) in web/src/engine/ — pure functions returning full Calculation records (formula string, rounding, inputs, rule id), typed `blocked` results for unconfirmed/unknown-frequency inputs, Vitest for every formula incl. blocked cases. No LLM, no UI deps.
+- [ ] C5 checklist engine vs data/checklist/gold.json — pure + tested; statuses icon+text; unconfirmed document date → needs_confirmation, never expired. Includes the queued decision: pick which organizer requirements demonstrate "Missing" and "Expired" with our fixtures, test it, update docs/demo-script.md.
+- [ ] C5 packet: preview route (cover + disclaimer as body text, confirmed values with evidence references, calculation sheet with formula + citation + effective date, checklist, unresolved items, manifest), renter-selected attachments, pdf-lib download. Parity bar: same sections, values, order, and manifest as the preview.
+- [ ] C7 (UI half): Safety Test Panel page running live against Hoan's endpoints (refusal · injection.pdf · unconfirmed-reuse block · deletion proof · cross-session rejection).
+- [ ] C8 accessibility: Playwright keyboard-only full journey, axe-core clean on all screens, aria-live announcements, focus management in modals, 200% zoom check, one manual keyboard-only run.
+- [ ] C9: metrics page (field accuracy, source-box accuracy, abstention rate, test pass counts vs gold — numbers from Hoan), docs/risk-note.md finalized (feature register, limitations, license manifest), demo-script verified end to end via Playwright; reconcile demo-script.md fixture/requirement references (it still names dropped placeholder requirements photo_id / address_verification). Demo lead: pitch deck + 6-minute rehearsal ×2 + backup recording.
 
-## Phase 5 · Vertical slice  ← tag `vertical-slice` when done
-- [x] server: POST /session, upload, extract, page render, audit, DELETE /session (real deletion, cross-session isolation) — 8 integration tests green
-- [x] OCR + schema-constrained LLM extraction + bbox mapping + confidence rule — OpenAI gpt-5-mini (structured outputs strict, page image + OCR text) behind server/src/extraction/provider.ts (Anthropic provider kept for switch-back); live proof green on stub_clean: 5 proposed incl. gross_pay $1,580.00 exact/high, 1 honest abstention (OCR-garbled date) → re-run any time with `cd server && npm run prove`
-- [x] Field review UI with evidence highlights, confirm/correct — upload + review screens per design tokens; document viewer (server PNG render + exact bbox overlay, 2px primary outline + scrim) left, field cards right; uncertainty center with jump-links; keyboard path verified (tab order, dialog focus trap + focus return to card via onCloseAutoFocus); screenshots reviewed at 1280/380
-- [ ] engine/: annualize, sum, compare — pure + unit tests passing
-- [ ] Single confirmed-profile store; downstream propagation verified (correct one field → everything updates)
-- [x] "What will update" preview before confirming a correction — dialog lists recomputed outputs (static FIELD_DEPENDENTS map for now; C4 replaces it with the real engine recompute list), old→new values formatted, explicit Confirm; version-bump toast "Profile updated to vN — k items recomputed" (6s, verified visible)
-- [ ] Calculations blocked on unconfirmed/unknown-frequency inputs, with plain-language explanation
-- [ ] Checklist engine vs gold.json (statuses icon+text)
-- [ ] Packet preview (renter-selected attachments) + PDF download, disclaimer included
+## Daril — web/src/ui + store + pages + components, CLAUDE.md/TODO.md, merges  (branch prefix `daril/`)
+- [ ] C4 (after Hoan's fix + Emmanuel's engine merge): single confirmedProfile store — all derived values (annualization, comparison, checklist, packet preview) computed from it, no cached copies; profileVersion + change log already in place; replace static FIELD_DEPENDENTS map (web/src/lib/field-meta.ts) with the real engine recompute list; blocked calculations rendered as calm info panels with plain-language reasons. Demonstrate propagation: correct gross_pay → screenshot updated annualization, comparison, checklist, packet preview.
+- [ ] C6 UI: "Understand" panel — question box wired to Hoan's /rules/ask; threshold numbers shown in the UI come from engine/rules.json, never from LLM text; refusals/abstentions styled as info panels.
+- [ ] C7: consent notice at upload (what is read / why / retention / deletion).
+- [ ] Merges: every PR same-day; tag `vertical-slice` when Phase 5 completes; keep main runnable.
 
-## Phase 6 · Understand
-- [ ] /rules + /rules/ask endpoints (full corpus in context, citation + effective date, abstain when uncovered) — the /rules/ask LLM call also uses OpenAI (same provider seam + OPENAI_API_KEY as extraction)
-- [ ] UI threshold numbers sourced from engine/rules.json, never from LLM text
-- [ ] Eligibility-question refusal + redirect wired
-
-## Phase 7 · Safety (20%)
-- [ ] Safety test panel: refusal · injection.pdf · unconfirmed-reuse block · real deletion proof
-- [ ] Consent notice at upload (what/why/retention/deletion)
-- [ ] Audit log (no raw document content)
-
-## Phase 8 · Accessibility (15%)
-- [ ] Playwright keyboard-only full journey passes
-- [ ] axe-core clean on all screens
-- [ ] aria-live announcements; focus management in modals; 200% zoom check
-- [ ] One manual keyboard-only run by a human
-
-## Phase 9 · Evaluation & demo
-- [x] Swap in official organizer data (done early, during C2): rules.json = frozen corpus + FY2026 MTSP 50%/60% tables (effective 2026-05-01, HUD source p.130, authority metadata); gold.json = organizer checklist + 60-day currency convention; fixture manifest (data/synthetic-docs/manifest.json) = 24 organizer PDFs + injection.pdf + conflict.pdf. NOTE: demo-script.md still references dropped placeholder requirements (photo_id, address_verification) — reconcile demo script during C9
-- [ ] Metrics page: field accuracy, source-box accuracy, abstention rate, test results
-- [ ] docs/risk-note.md finalized (feature register, limitations, license manifest)
-- [ ] Demo rehearsed twice per docs/demo-script.md; backup recording captured
-
-## Cut line if behind (cut from the bottom up)
-1. Keep: vertical slice → propagation → safety panel → citations → accessibility basics
-2. Cut first: Discover (0 rubric points) → metrics dashboard → visual polish → multi-document support
+## Done (compressed history — see git log for detail)
+- [x] Phase 0–2: scaffold (Vite/React/TS, Tailwind v4, shadcn radix, zod, react-pdf, pdf-lib, vitest, playwright), design tokens + style guide, MCPs, git init
+- [x] Phase 4 (C1): strict zod contracts + field state machine (35 tests), placeholder rules/checklist data, 7 synthetic fixtures with OCR-verified degradation
+- [x] C2: session service (create/upload/extract/page-render/audit/real DELETE, 8 integration tests), OCR + schema-constrained extraction on OpenAI gpt-5-mini behind provider seam, bbox matching + confidence rule, live proof on stub_clean (`cd server && npm run prove`)
+- [x] Official frozen 2026 data swapped in early (rules.json = frozen corpus + FY2026 MTSP 50%/60% tables; gold.json = organizer checklist; manifest = 24 organizer PDFs + injection + conflict)
+- [x] C3: upload + field-review UI (evidence highlights, confirm/correct with what-will-update preview + version toast, uncertainty center, keyboard path verified, 1280/380 screenshots reviewed)

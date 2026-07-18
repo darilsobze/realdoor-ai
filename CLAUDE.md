@@ -46,6 +46,17 @@ confirmed · needs_confirmation · missing · expired · conflicting · not_appl
 ## Accessibility (WCAG 2.2 AA target — 15% of score)
 Keyboard-complete journey, visible focus, labeled controls, errors linked to fields, aria-live for updates/completion, icon+text statuses, structured headings, works at 200% zoom.
 
+## Team workflow (3-person build — see TEAM_PLAN.md for roles, dependency map, daily rhythm)
+- Ownership fences (hard rules for every Claude Code session):
+  - Daril (integration lead): `web/src/ui`, `web/src/store`, `web/src/pages`, `web/src/components`, CLAUDE.md, TODO.md, merges to main.
+  - Hoan: `server/`, `data/rules/`.
+  - Emmanuel: `web/src/engine`, checklist/packet UI routes, `docs/`, `data/checklist/`.
+- A session works ONLY inside its owner's directories. Cross-boundary changes go through the owning person, never directly.
+- `web/src/contracts/` is FROZEN — no schema change without explicit 3-person agreement (group chat OK before the PR).
+- Only Daril edits CLAUDE.md and TODO.md; others put "TODO requests" in PR descriptions.
+- `docs/api.md` is the server contract: Hoan updates it in the same PR as any endpoint change; everyone else builds against the file.
+- main is always runnable. Branch per task (`hoan/fix-abstention`, `emmanuel/c5-checklist`, …), PRs opened same day, merged only by Daril; every PR needs tests green + a one-line "how I verified".
+
 ## Workflow preferences
 - Plan before implementing anything structural; wait for approval.
 - Small vertical slices; keep the app runnable after every change; suggest a git commit at each working milestone.
