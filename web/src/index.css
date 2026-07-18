@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+
+/*
+ * RealDoor design tokens — single source of truth.
+ * Light mode only. Calm, premium civic product: gov.uk clarity, Stripe finish.
+ * Every color pair meets WCAG AA on its background.
+ */
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Inter Variable', Inter, system-ui, sans-serif;
+
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+
+    /* RealDoor semantic tokens */
+    --color-ink: var(--ink);
+    --color-body: var(--body);
+    --color-subtle: var(--subtle);
+    --color-primary-hover: var(--primary-hover);
+    --color-status-confirmed: var(--status-confirmed);
+    --color-status-confirmed-bg: var(--status-confirmed-bg);
+    --color-status-attention: var(--status-attention);
+    --color-status-attention-bg: var(--status-attention-bg);
+    --color-status-blocking: var(--status-blocking);
+    --color-status-blocking-bg: var(--status-blocking-bg);
+    --color-status-info: var(--status-info);
+    --color-status-info-bg: var(--status-info-bg);
+    --color-evidence-fill: var(--evidence-fill);
+    --color-scrim: var(--scrim);
+
+    --radius-sm: calc(var(--radius) * 0.5);
+    --radius-md: calc(var(--radius) * 0.67);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.33);
+
+    /* Type scale: 13 / 14 / 16 / 18 / 22 / 28 */
+    --text-xs: 0.8125rem;
+    --text-xs--line-height: 1.5;
+    --text-sm: 0.875rem;
+    --text-sm--line-height: 1.55;
+    --text-base: 1rem;
+    --text-base--line-height: 1.6;
+    --text-lg: 1.125rem;
+    --text-lg--line-height: 1.55;
+    --text-xl: 1.375rem;
+    --text-xl--line-height: 1.35;
+    --text-2xl: 1.75rem;
+    --text-2xl--line-height: 1.25;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.03);
+
+    --container-reading: 55rem; /* 880px max reading width */
+
+    --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-value-pulse: value-pulse 1.2s ease-out 1;
+}
+
+:root {
+    --background: #FAFAF8;
+    --foreground: #3F4450;          /* body text */
+    --ink: #1A1D23;                 /* headings */
+    --body: #3F4450;
+    --subtle: #6B7180;              /* secondary text */
+    --card: #FFFFFF;
+    --card-foreground: #3F4450;
+    --popover: #FFFFFF;
+    --popover-foreground: #3F4450;
+    --primary: #1D4ED8;
+    --primary-hover: #1E40AF;
+    --primary-foreground: #FFFFFF;
+    --secondary: #F4F4F1;
+    --secondary-foreground: #1A1D23;
+    --muted: #F4F4F1;
+    --muted-foreground: #6B7180;
+    --accent: #EFF6FF;
+    --accent-foreground: #1D4ED8;
+    --destructive: #B91C1C;
+    --border: #E7E5E1;
+    --input: #E7E5E1;
+    --ring: #1D4ED8;
+
+    /* Status pairs — icon + text always accompany color */
+    --status-confirmed: #047857;
+    --status-confirmed-bg: #ECFDF5;
+    --status-attention: #B45309;
+    --status-attention-bg: #FFFBEB;
+    --status-blocking: #B91C1C;
+    --status-blocking-bg: #FEF2F2;
+    --status-info: #1D4ED8;
+    --status-info-bg: #EFF6FF;
+
+    /* Evidence highlight: 2px primary outline + 8% fill; scrim dims the rest */
+    --evidence-fill: rgb(29 78 216 / 0.08);
+    --scrim: rgb(26 29 35 / 0.28);
+
+    --radius: 0.75rem; /* 12px */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    }
+  body {
+    @apply bg-background text-foreground text-base;
+    }
+  html {
+    @apply font-sans;
+    }
+  h1, h2, h3, h4 {
+    @apply text-ink font-semibold tracking-tight;
+    }
+  /* Visible focus for every interactive element: 2px ring, 2px offset */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+    }
+}
+
+@layer utilities {
+  /* All currency and dates use tabular figures */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    }
+}
+
+@keyframes value-pulse {
+  0% { background-color: var(--status-info-bg); }
+  100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
