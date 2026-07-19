@@ -4,7 +4,7 @@
 // C4 — every derived value (annualization, comparison, checklist, packet
 // preview) recomputed from the single confirmed-profile store on any change.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpenCheck, FileCheck2, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DocumentViewer, type EvidenceTarget } from "@/components/document-viewer";
@@ -18,7 +18,6 @@ import {
 } from "@/components/derived-panels";
 import { GOLD_CHECKLIST } from "@/lib/checklist";
 import { UncertaintyCenter } from "@/components/uncertainty-center";
-import { DeleteEverything } from "@/components/delete-everything";
 import { WhatWillUpdateDialog, type PendingCorrection } from "@/components/what-will-update";
 import { buildDerived, diffOutputs, withCorrection } from "@/lib/calculations";
 import { FIELD_META } from "@/lib/field-meta";
@@ -154,36 +153,19 @@ export function ReviewPage() {
         {announcement}
       </p>
 
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 ref={headingRef} tabIndex={-1} className="text-xl outline-none">Check what we read</h1>
-          <p className="text-sm text-subtle">
-            Every value shows where it came from. Nothing counts until you confirm it.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => (window.location.hash = "#/packet")}>
-            <FileCheck2 aria-hidden="true" data-icon="inline-start" />
-            Packet preview
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => (window.location.hash = "#/understand")}>
-            <BookOpenCheck aria-hidden="true" data-icon="inline-start" />
-            Understand the rules
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => (window.location.hash = "#/safety")}>
-            <ShieldCheck aria-hidden="true" data-icon="inline-start" />
-            Safety
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/")}>
-            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-            Upload another document
-          </Button>
-          <DeleteEverything />
-        </div>
+      <header>
+        {/* tabIndex + focus() moves screen-reader focus here after navigation;
+            outline suppressed since the user didn't tab to it (focus management). */}
+        <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="text-xl">
+          Check what we read
+        </h1>
+        <p className="text-sm text-subtle">
+          Every value shows where it came from. Nothing counts until you confirm it.
+        </p>
       </header>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <div id="document-viewer" className="order-2 scroll-mt-6 lg:order-1 lg:sticky lg:top-6">
+      <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <div id="document-viewer" className="order-2 scroll-mt-6 lg:order-1 lg:sticky lg:top-20">
           <DocumentViewer
             sessionId={state.sessionId}
             documentId={state.document.id}

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Download, FileCheck2, Info } from "lucide-react";
+import { Download, FileCheck2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -230,16 +230,10 @@ export function PacketPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-primary">Profile v{state.profileVersion}</p>
-          <h1 className="text-2xl">Preview your application packet</h1>
-          <p className="mt-1 max-w-2xl text-sm text-body">{packet.cover.disclaimer}</p>
-        </div>
-        <Button variant="outline" onClick={() => (window.location.hash = "#/review")}>
-          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-          Back to review
-        </Button>
+      <header>
+        <p className="text-sm font-medium text-primary">Profile v{state.profileVersion}</p>
+        <h1 className="text-2xl">Preview your application packet</h1>
+        <p className="mt-1 max-w-2xl text-sm text-body">{packet.cover.disclaimer}</p>
       </header>
 
       <Card>

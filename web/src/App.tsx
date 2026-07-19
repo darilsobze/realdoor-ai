@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppNav } from "@/components/app-nav";
 import { StyleGuide } from "@/ui/StyleGuide";
 import { PacketPage } from "@/ui/PacketPage";
 import { SafetyPanelPage } from "@/ui/SafetyPanelPage";
@@ -21,9 +23,16 @@ function useHashRoute() {
 export default function App() {
   const hash = useHashRoute();
 
+  if (hash === "#/style-guide") {
+    return (
+      <ReviewProvider>
+        <StyleGuide />
+      </ReviewProvider>
+    );
+  }
+
   let screen;
-  if (hash === "#/style-guide") screen = <StyleGuide />;
-  else if (hash === "#/review") screen = <ReviewPage />;
+  if (hash === "#/review") screen = <ReviewPage />;
   else if (hash === "#/understand") screen = <UnderstandPage />;
   else if (hash === "#/packet") screen = <PacketPage />;
   else if (hash === "#/safety") screen = <SafetyPanelPage />;
@@ -31,8 +40,11 @@ export default function App() {
 
   return (
     <ReviewProvider>
-      {screen}
-      <Toaster position="bottom-right" duration={6000} />
+      <TooltipProvider delayDuration={200}>
+        <AppNav hash={hash} />
+        {screen}
+        <Toaster position="bottom-right" duration={6000} />
+      </TooltipProvider>
     </ReviewProvider>
   );
 }

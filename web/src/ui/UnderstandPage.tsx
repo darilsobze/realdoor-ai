@@ -4,7 +4,7 @@
 // steps come from the engine via the confirmed-profile store. Refusals and
 // abstentions render as calm informational panels: both are correct behavior.
 import { useMemo, useState } from "react";
-import { ArrowLeft, BookOpenCheck, Info, MessageCircleQuestion } from "lucide-react";
+import { BookOpenCheck, Info, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,17 +92,11 @@ export function UnderstandPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-(--container-reading) flex-col gap-6 px-6 py-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl">Understand the rules</h1>
-          <p className="text-sm text-subtle">
-            Answers come only from the frozen rule library, always with the source.
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/review")}>
-          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-          Back to review
-        </Button>
+      <header>
+        <h1 className="text-xl">Understand the rules</h1>
+        <p className="text-sm text-subtle">
+          Answers come only from the frozen rule library, always with the source.
+        </p>
       </header>
 
       <Card>
