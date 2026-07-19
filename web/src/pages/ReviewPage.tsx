@@ -3,7 +3,7 @@
 // correct flow with "What will update" preview and version-bump toast, and —
 // C4 — every derived value (annualization, comparison, checklist, packet
 // preview) recomputed from the single confirmed-profile store on any change.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpenCheck, FileCheck2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,13 @@ export function ReviewPage() {
   const { state, dispatch } = useReview();
   const [pending, setPending] = useState<PendingCorrection | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // WCAG focus management: after navigating in from extraction, move focus to
+  // the page heading so keyboard/AT users start at the top of the new screen.
+  useEffect(() => {
+    if (state.document) headingRef.current?.focus();
+  }, [state.document?.id]);
 
   const needCount = state.fields.filter(
     (f) => f.state === "proposed" || f.state === "corrected",
@@ -149,7 +156,7 @@ export function ReviewPage() {
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl">Check what we read</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-xl outline-none">Check what we read</h1>
           <p className="text-sm text-subtle">
             Every value shows where it came from. Nothing counts until you confirm it.
           </p>
