@@ -1,7 +1,7 @@
 // Document viewer: server-rendered page PNG (the same render that fed OCR, so
 // boxes align exactly) with the active field's evidence box outlined 2px in
 // primary + 8% fill, and a scrim over the rest of the page.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +32,21 @@ export function DocumentViewer({
 }) {
   const [page, setPage] = useState(1);
   const [pagePts, setPagePts] = useState<{ w: number; h: number } | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  // Rendered width of the page image, in CSS px. The image is fit-to-width
+  // (w-full), so this equals its container's content width; we recompute it on
+  // resize and derive one scale factor that positions the evidence overlay —
+  // so highlights stay pixel-accurate at any column width.
+  const [renderW, setRenderW] = useState(0);
+
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setRenderW(el.clientWidth));
+    ro.observe(el);
+    setRenderW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
 
   // Follow the evidence to its page.
   useEffect(() => {
@@ -39,6 +54,8 @@ export function DocumentViewer({
   }, [evidence]);
 
   const box = evidence && evidence.page === page && pagePts ? evidence.bbox : null;
+  // One fit-to-width factor: rendered pixels per PDF point.
+  const scale = pagePts && renderW ? renderW / pagePts.w : 0;
 
   return (
     <Card className="flex flex-col gap-3 p-4">
@@ -73,7 +90,7 @@ export function DocumentViewer({
         )}
       </div>
 
-      <div className="relative overflow-hidden rounded-lg border">
+      <div ref={frameRef} className="relative overflow-hidden rounded-lg border">
         <img
           src={pageUrl(sessionId, documentId, page)}
           alt={`Page ${page} of ${displayName}`}
@@ -81,17 +98,18 @@ export function DocumentViewer({
           onLoad={(e) => {
             const img = e.currentTarget;
             setPagePts({ w: img.naturalWidth / PNG_SCALE, h: img.naturalHeight / PNG_SCALE });
+            setRenderW(img.clientWidth);
           }}
         />
-        {box && pagePts && (
+        {box && scale > 0 && (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute rounded-[2px] outline-2 outline-primary bg-evidence-fill transition-all duration-200 ease-(--ease-out-soft)"
             style={{
-              left: `${(box.x / pagePts.w) * 100}%`,
-              top: `${(box.y / pagePts.h) * 100}%`,
-              width: `${(box.width / pagePts.w) * 100}%`,
-              height: `${(box.height / pagePts.h) * 100}%`,
+              left: `${box.x * scale}px`,
+              top: `${box.y * scale}px`,
+              width: `${box.width * scale}px`,
+              height: `${box.height * scale}px`,
               boxShadow: "0 0 0 100vmax var(--scrim)",
             }}
           />

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusBadge, type StatusVariant } from "@/components/status-badge";
 import { deriveConfirmationStatus, type ConfirmationStatus } from "@/contracts";
 import { FIELD_META, formatValue } from "@/lib/field-meta";
@@ -80,11 +81,22 @@ export function FieldCard({
     >
       <CardContent className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
+          <div className="flex items-center gap-1.5">
             <h3 className="text-base font-semibold text-ink">{meta.label}</h3>
-            <p id={helperId} className="text-xs text-subtle">
-              {meta.helper}
-            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`What is ${meta.label.toLowerCase()}?`}
+                  className="rounded-full text-subtle transition-colors hover:text-primary"
+                >
+                  <Info aria-hidden="true" className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent id={helperId} className="max-w-[220px] text-left">
+                {meta.helper}
+              </TooltipContent>
+            </Tooltip>
           </div>
           {status && <StatusBadge variant={STATUS_DISPLAY[status].variant} label={STATUS_DISPLAY[status].label} />}
         </div>
@@ -158,7 +170,6 @@ export function FieldCard({
               id={inputId}
               value={draft}
               autoFocus
-              aria-describedby={helperId}
               onChange={(e) => setDraft(e.target.value)}
             />
             <div className="flex gap-2">

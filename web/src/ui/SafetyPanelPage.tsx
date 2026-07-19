@@ -4,7 +4,6 @@
 // not alarms (design brief: abstaining/refusing is correct behavior).
 import { useRef, useState } from "react";
 import {
-  ArrowLeft,
   Ban,
   Bug,
   Calculator,
@@ -138,23 +137,17 @@ export function SafetyPanelPage() {
         {announcement}
       </p>
 
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-lg bg-status-info-bg">
-            <ShieldCheck aria-hidden="true" className="size-5 text-status-info" />
-          </span>
-          <div>
-            <h1 className="text-xl">Safety, proven live</h1>
-            <p className="max-w-xl text-sm text-subtle">
-              Five promises this tool makes — each one runs against the real
-              system right now, in front of you. Nothing here is a screenshot.
-            </p>
-          </div>
+      <header className="flex items-start gap-3">
+        <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-lg bg-status-info-bg">
+          <ShieldCheck aria-hidden="true" className="size-5 text-status-info" />
+        </span>
+        <div>
+          <h1 className="text-xl">Safety, proven live</h1>
+          <p className="max-w-xl text-sm text-subtle">
+            Five promises this tool makes — each one runs against the real
+            system right now, in front of you. Nothing here is a screenshot.
+          </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/review")}>
-          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-          Back to review
-        </Button>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4 shadow-card">

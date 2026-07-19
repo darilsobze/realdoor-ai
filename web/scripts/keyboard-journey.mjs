@@ -92,10 +92,14 @@ await page.waitForTimeout(400);
 const derivedText = await page.locator('section[aria-labelledby="derived-heading"]').innerText();
 ok("propagation: annualization + comparison + checklist recomputed", /42,120/.test(derivedText) && /under the published limit/.test(derivedText) && /Two recent pay stubs/.test(derivedText));
 
-// 4. ASK — activate the Understand header button by keyboard, ask via keyboard.
-const askBtn = page.locator('button:has-text("Understand the rules")');
-await askBtn.focus();
-ok("review: 'Understand the rules' is keyboard-focusable", await askBtn.evaluate((el) => el === document.activeElement));
+// 4. ASK — navigate via the app-nav "Understand" tab; verify arrow-key nav +
+// aria-current, then ask via keyboard.
+const profileTab = page.locator('nav[aria-label="Sections"] a[aria-current="page"]');
+ok("nav: active tab has aria-current=page", (await profileTab.count()) === 1 && /Profile/.test(await profileTab.first().innerText()));
+await profileTab.first().focus();
+await page.keyboard.press("ArrowRight"); // roving tabindex → Understand
+const focusedTab = await page.evaluate(() => document.activeElement?.textContent?.trim());
+ok("nav: ArrowRight moves focus to the next tab", focusedTab === "Understand");
 await page.keyboard.press("Enter");
 await page.waitForURL(/understand/, { timeout: 5000 }).catch(() => {});
 await page.waitForTimeout(400);
