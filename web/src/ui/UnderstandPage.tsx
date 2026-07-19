@@ -4,19 +4,133 @@
 // steps come from the engine via the confirmed-profile store. Refusals and
 // abstentions render as calm informational panels: both are correct behavior.
 import { useMemo, useState } from "react";
-import { BookOpenCheck, Info, MessageCircleQuestion } from "lucide-react";
+import { Ban, BookOpenCheck, Brain, Info, Loader2, MessageCircleQuestion, MessageCircleReply, ScanSearch, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DISCLAIMER_TEXT } from "@/contracts";
+import { DISCLAIMER_TEXT, type Rule, type ThresholdRow } from "@/contracts";
 import { IncomeTraceCard, ComparisonTraceCard } from "@/components/trace-cards";
+import { ComputationTrace, type TraceSource, type TraceStep } from "@/components/computation-trace";
 import { ApiError, askRules, type RulesAskResponse } from "@/lib/api";
 import { buildDerived } from "@/lib/calculations";
 import { APP_SCOPE, SCORED_RULE, ruleById } from "@/lib/rules";
 import { useReview } from "@/store/review";
+
+/** Truthful ask trace — the app answers ONLY from the frozen corpus (no web,
+ *  no vector retrieval). Refusals happen deterministically before any lookup,
+ *  so they show no "searching" step. */
+function askSteps(question: string, r: RulesAskResponse): TraceStep[] {
+  if (r.refusal) {
+    return [
+      { label: "Reading your question", icon: Brain },
+      { label: "Recognized a decision request — declining before any lookup", icon: Ban },
+    ];
+  }
+  const q = question.length > 52 ? `${question.slice(0, 52)}…` : question;
+  const steps: TraceStep[] = [
+    { label: "Reading your question", icon: Brain },
+    { label: "Searching the frozen rule corpus", icon: Search, detail: q },
+  ];
+  if (r.citation) {
+    steps.push({ label: "Relevant rule found", icon: ScanSearch, detail: `rule ${r.citation.rule_id}` });
+    steps.push({ label: "Composing the answer from that rule", icon: MessageCircleReply });
+  } else {
+    steps.push({ label: "No authoritative rule found — abstaining", icon: ScanSearch });
+  }
+  return steps;
+}
+
+function askSources(r: RulesAskResponse): TraceSource[] {
+  if (!r.citation) return [];
+  const c = r.citation;
+  return [
+    {
+      label: c.section ?? c.official_source,
+      sublabel: `rule ${c.rule_id} · ${c.page !== null ? `p. ${c.page} · ` : ""}effective ${c.effective_date} · ${c.program_id} ${c.rule_year}`,
+      href: c.official_source?.startsWith("http") ? c.official_source : undefined,
+    },
+  ];
+}
+
+/** The answer body (revealed after the trace). Refusals/abstentions render as
+ *  calm info panels; a grounded answer shows the prose (or the structured
+ *  table when prose numbers aren't in the cited rule) + citation + disclaimer. */
+function renderAnswerBody(
+  r: RulesAskResponse,
+  citedRule: Rule | null,
+  structuredThreshold: ThresholdRow | null,
+  householdSize: number | null,
+): React.ReactNode {
+  if (!r.citation) {
+    return (
+      <div className="flex items-start gap-2.5 rounded-lg bg-status-info-bg p-3">
+        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-status-info" />
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-status-info">
+            {r.refusal ? "This tool doesn't make decisions" : "No authoritative rule found"}
+          </p>
+          <p className="text-sm text-body">{r.answer}</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {proseIsNumericallyGrounded(r.answer, r.citation.rule_id) ? (
+        <p className="text-body">{r.answer}</p>
+      ) : (
+        <p className="text-body">
+          See the published table below — the exact figures come from the cited
+          source, not from generated text.
+        </p>
+      )}
+      {structuredThreshold && (
+        <p className="rounded-lg bg-muted px-3 py-2 text-sm text-body">
+          Published limit for your confirmed household size ({householdSize}):{" "}
+          <span className="tnum font-semibold text-ink">
+            {USD.format(structuredThreshold.annual_income_limit_usd)}
+          </span>{" "}
+          per year <span className="text-subtle">(from the table itself)</span>
+        </p>
+      )}
+      {citedRule?.thresholds && !structuredThreshold && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <caption className="sr-only">Published annual income limits by household size</caption>
+            <thead>
+              <tr className="text-left text-xs text-subtle">
+                <th scope="col" className="py-1 pr-4 font-medium">Household size</th>
+                <th scope="col" className="py-1 font-medium">Annual income limit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {citedRule.thresholds.map((t) => (
+                <tr key={t.household_size} className="border-t border-border">
+                  <td className="tnum py-1 pr-4">{t.household_size}</td>
+                  <td className="tnum py-1">{USD.format(t.annual_income_limit_usd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Separator />
+      <div className="flex flex-col gap-1 text-xs text-subtle">
+        <p className="font-medium text-body">
+          {AUTHORITY_LABELS[r.citation.authority] ?? r.citation.authority}
+        </p>
+        <p>
+          {r.citation.section ?? r.citation.official_source}
+          {r.citation.page !== null && `, p. ${r.citation.page}`} · rule {r.citation.rule_id} ·
+          version {r.citation.rule_version} · effective {r.citation.effective_date}
+        </p>
+      </div>
+      <p className="text-sm text-body">{DISCLAIMER_TEXT}</p>
+    </div>
+  );
+}
 
 const USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -56,6 +170,9 @@ export function UnderstandPage() {
   const { state } = useReview();
   const [question, setQuestion] = useState("");
   const [ask, setAsk] = useState<AskState>({ kind: "idle" });
+  // Increments each ask so the trace animates fresh every time.
+  const [askId, setAskId] = useState(0);
+  const [askedText, setAskedText] = useState("");
 
   const context = useMemo(
     () => ({ profileVersion: state.profileVersion, computedAt: state.lastChangedAt || "1970-01-01T00:00:00.000Z" }),
@@ -69,6 +186,8 @@ export function UnderstandPage() {
   async function submit(q: string) {
     const trimmed = q.trim();
     if (!trimmed || ask.kind === "loading") return;
+    setAskedText(trimmed);
+    setAskId((n) => n + 1);
     setAsk({ kind: "loading" });
     try {
       setAsk({ kind: "answered", response: await askRules(trimmed, APP_SCOPE) });
@@ -152,13 +271,10 @@ export function UnderstandPage() {
       </p>
 
       {ask.kind === "loading" && (
-        <Card>
-          <CardContent className="flex flex-col gap-3 p-5">
-            <p className="text-sm text-subtle">Checking the rule library…</p>
-            <Skeleton className="h-4 w-3/5" />
-            <Skeleton className="h-4 w-2/5" />
-          </CardContent>
-        </Card>
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium text-ink shadow-card">
+          <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
+          Thinking…
+        </div>
       )}
 
       {ask.kind === "error" && (
@@ -167,85 +283,19 @@ export function UnderstandPage() {
         </div>
       )}
 
-      {ask.kind === "answered" && (ask.response.refusal || ask.response.abstained) && !ask.response.citation && (
-        <div role="status" className="rounded-lg border border-status-info/20 bg-status-info-bg p-4">
-          <div className="flex items-start gap-2.5">
-            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-status-info" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-status-info">
-                {ask.response.refusal ? "This tool doesn't make decisions" : "No authoritative rule found"}
-              </p>
-              <p className="text-sm text-body">{ask.response.answer}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {ask.kind === "answered" && !ask.response.refusal && !ask.response.abstained && ask.response.citation && (
-        <Card>
-          <CardContent className="flex flex-col gap-3 p-5">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
-              <BookOpenCheck aria-hidden="true" className="size-4 text-primary" />
-              Answer
-            </h2>
-
-            {proseIsNumericallyGrounded(ask.response.answer, ask.response.citation.rule_id) ? (
-              <p className="text-body">{ask.response.answer}</p>
-            ) : (
-              <p className="text-body">
-                See the published table below — the exact figures come from the
-                cited source, not from generated text.
-              </p>
-            )}
-
-            {structuredThreshold && (
-              <p className="rounded-lg bg-muted px-3 py-2 text-sm text-body">
-                Published limit for your confirmed household size ({householdSize}):{" "}
-                <span className="tnum font-semibold text-ink">
-                  {USD.format(structuredThreshold.annual_income_limit_usd)}
-                </span>{" "}
-                per year <span className="text-subtle">(from the table itself)</span>
-              </p>
-            )}
-            {citedRule?.thresholds && !structuredThreshold && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <caption className="sr-only">
-                    Published annual income limits by household size
-                  </caption>
-                  <thead>
-                    <tr className="text-left text-xs text-subtle">
-                      <th scope="col" className="py-1 pr-4 font-medium">Household size</th>
-                      <th scope="col" className="py-1 font-medium">Annual income limit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {citedRule.thresholds.map((t) => (
-                      <tr key={t.household_size} className="border-t border-border">
-                        <td className="tnum py-1 pr-4">{t.household_size}</td>
-                        <td className="tnum py-1">{USD.format(t.annual_income_limit_usd)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <Separator />
-            <div className="flex flex-col gap-1 text-xs text-subtle">
-              <p className="font-medium text-body">
-                {AUTHORITY_LABELS[ask.response.citation.authority] ?? ask.response.citation.authority}
-              </p>
-              <p>
-                {ask.response.citation.section ?? ask.response.citation.official_source}
-                {ask.response.citation.page !== null && `, p. ${ask.response.citation.page}`} · rule{" "}
-                {ask.response.citation.rule_id} · version {ask.response.citation.rule_version} ·
-                effective {ask.response.citation.effective_date}
-              </p>
-            </div>
-            <p className="text-sm text-body">{DISCLAIMER_TEXT}</p>
-          </CardContent>
-        </Card>
+      {ask.kind === "answered" && (
+        <ComputationTrace
+          key={askId}
+          traceKey={`ask:${askId}`}
+          icon={BookOpenCheck}
+          title="Answer"
+          autoPlay
+          replayLabel="Re-run"
+          steps={askSteps(askedText, ask.response)}
+          sources={askSources(ask.response)}
+          announce={ask.response.refusal ? "Declined — this tool does not make decisions." : ask.response.citation ? "Answer ready with a citation." : "No authoritative rule found."}
+          result={() => renderAnswerBody(ask.response, citedRule, structuredThreshold, householdSize)}
+        />
       )}
 
       <section aria-labelledby="your-numbers" className="flex flex-col gap-3">

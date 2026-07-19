@@ -110,7 +110,8 @@ const qbox = page.locator("#rules-question");
 await qbox.focus();
 await page.keyboard.type("What is the income limit for a 3-person household?");
 await page.keyboard.press("Enter");
-await page.waitForSelector('h2:has-text("Answer")', { timeout: 60_000 });
+// The answer reveals inside a computation trace (steps animate first).
+await page.waitForFunction(() => /92,580/.test(document.body.innerText), { timeout: 60_000 }).catch(() => {});
 const answerText = await page.locator("main").innerText();
 ok("ask: corpus answer with citation shown", /92,580/.test(answerText) && /effective/i.test(answerText));
 

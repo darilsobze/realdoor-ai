@@ -61,16 +61,21 @@ total += await scan("review (what-will-update dialog open)");
 await page.keyboard.press("Escape");
 await page.waitForTimeout(200);
 
-// Understand.
+// Understand — the income/comparison computation traces auto-play; scan the
+// SETTLED state (transient fade frames lower opacity and aren't the end state;
+// reduced-motion users never see them).
 await page.goto("http://localhost:5173/#/understand", { waitUntil: "networkidle" });
-total += await scan("understand (idle)");
+await page.waitForFunction(() => /under the published limit/.test(document.body.innerText), { timeout: 25000 }).catch(() => {});
+await page.waitForTimeout(600);
+total += await scan("understand (traces settled)");
 await page.locator('button:has-text("What is the income limit")').first().click();
-await page.waitForSelector('h2:has-text("Answer")', { timeout: 60_000 }).catch(() => {});
-await page.waitForTimeout(300);
+await page.waitForFunction(() => /\$92,580/.test(document.body.innerText), { timeout: 60_000 }).catch(() => {});
+await page.waitForTimeout(600);
 total += await scan("understand (answer shown)");
 
-// Packet.
+// Packet — checklist trace auto-plays; scan settled.
 await page.goto("http://localhost:5173/#/packet", { waitUntil: "networkidle" });
+await page.waitForTimeout(3200);
 total += await scan("packet");
 
 // Safety panel (idle, then one check done).
