@@ -23,6 +23,11 @@ Base URL (dev): `http://localhost:3001`
 | GET | `/rules` | frozen corpus metadata + threshold tables | serves `data/rules/rules.json`; UI thresholds come from HERE via the engine, never from LLM text |
 | POST | `/rules/ask` | free-text rules question | body `{ question, confirmedContext?: { program_id?, metro_id?, rule_year? } }`; returns the rules-answer shape below |
 
+When `confirmedContext` is omitted, the server uses the app's single supported
+scope: `LIHTC` / `boston_cambridge_quincy_ma_nh_hmfa` / `2026`. Explicit
+context and explicit scope in the question must still match the cited rule;
+mismatches abstain with no citation.
+
 `POST /rules/ask` returns:
 
 ```ts
