@@ -15,7 +15,9 @@ import {
   type ComputedCalculation,
 } from "@/contracts";
 import { FIELD_META, formatValue } from "@/lib/field-meta";
+import { requirementTitle } from "@/lib/checklist";
 import type { DerivedOutputs } from "@/lib/calculations";
+import { StatusBadge } from "@/components/status-badge";
 import type { ReviewField } from "@/store/review";
 import { cn } from "@/lib/utils";
 
@@ -177,17 +179,34 @@ export function ComparisonPanel({
   );
 }
 
-export function ChecklistWaitingPanel({ profileVersion }: { profileVersion: number }) {
+export function ChecklistPanel({
+  derived,
+  checklistVersion,
+  profileVersion,
+}: {
+  derived: DerivedOutputs;
+  checklistVersion: string;
+  profileVersion: number;
+}) {
   return (
     <PanelShell icon={ListChecks} title="Application checklist" pulseKey={profileVersion}>
-      <div className="flex items-start gap-2.5 rounded-lg bg-status-info-bg p-3 text-sm">
-        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-status-info" />
-        <p className="text-body">
-          The checklist engine is on its way (next teammate merge). It will
-          compute from these same confirmed values — every date and document
-          you confirm here feeds it automatically, nothing needs re-entering.
-        </p>
-      </div>
+      <ul className="flex flex-col gap-2.5">
+        {derived.checklist.map((row) => (
+          <li key={row.requirement_id} className="flex flex-col gap-0.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium text-ink">
+                {requirementTitle(row.requirement_id)}
+              </span>
+              <StatusBadge variant={row.status} />
+            </div>
+            <p className="text-xs text-subtle">{row.explanation}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-subtle">
+        Evaluated against the frozen checklist ({checklistVersion}) using your
+        confirmed values only.
+      </p>
     </PanelShell>
   );
 }

@@ -134,7 +134,7 @@ describe("diffOutputs — the real recompute list", () => {
     ]);
   });
 
-  it("lists only the packet for a field no calculation consumes", () => {
+  it("lists only the packet for a field no calculation consumes (no document)", () => {
     const before = buildDerived(fields, household, SCORED_RULE, context);
     const after = buildDerived(
       withCorrection(fields, "id-document_date", "2026-06-16"),
@@ -143,5 +143,55 @@ describe("diffOutputs — the real recompute list", () => {
       context,
     );
     expect(diffOutputs(before, after)).toEqual(["Application packet"]);
+  });
+});
+
+describe("checklist wiring (single confirmed-profile source)", () => {
+  const docFields = [
+    field("document_type", "confirmed", "pay_stub"),
+    field("document_date", "proposed", null),
+  ];
+
+  it("unconfirmed document date → pay stubs requirement needs_confirmation, never expired", () => {
+    const derived = buildDerived(docFields, household, SCORED_RULE, context, "doc-1");
+    const stubs = derived.checklist.find((r) => r.requirement_id === "pay_stubs_recent");
+    expect(stubs?.status).toBe("needs_confirmation");
+  });
+
+  it("confirming the document date recomputes checklist rows in the diff", () => {
+    const before = buildDerived(docFields, household, SCORED_RULE, context, "doc-1");
+    const after = buildDerived(
+      withCorrection(docFields, "id-document_date", "2026-07-10"),
+      household,
+      SCORED_RULE,
+      context,
+      "doc-1",
+    );
+    const outputs = diffOutputs(before, after);
+    expect(outputs.some((o) => o.startsWith("Checklist:"))).toBe(true);
+    expect(outputs).toContain("Application packet");
+  });
+
+  it("renter-typed US dates normalize for the freshness check", () => {
+    const after = buildDerived(
+      withCorrection(docFields, "id-document_date", "07/10/2026"),
+      household,
+      SCORED_RULE,
+      context,
+      "doc-1",
+    );
+    // 2026-07-10 is inside the 60-day window of the 2026-07-19 as-of date:
+    // one current stub of two required → missing (not expired, not unconfirmed).
+    const stubs = after.checklist.find((r) => r.requirement_id === "pay_stubs_recent");
+    expect(stubs?.status).toBe("missing");
+  });
+
+  it("household-size confirmation flips the attestation row", () => {
+    const before = buildDerived(docFields, { value: null, confirmedAt: null }, SCORED_RULE, context, "doc-1");
+    const beforeRow = before.checklist.find((r) => r.requirement_id === "household_size_confirmation");
+    expect(beforeRow?.status).toBe("needs_confirmation");
+    const after = buildDerived(docFields, household, SCORED_RULE, context, "doc-1");
+    const afterRow = after.checklist.find((r) => r.requirement_id === "household_size_confirmation");
+    expect(afterRow?.status).toBe("confirmed");
   });
 });

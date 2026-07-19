@@ -5,15 +5,20 @@
 import {
   annualize,
   compareToThreshold,
+  evaluateChecklist,
   sumIncomeSources,
   type CalculationContext,
+  type ChecklistDocumentMetadata,
 } from "@/engine";
 import {
+  DocumentTypeSchema,
   FrequencySchema,
   type CalculationResult,
+  type ChecklistResult,
   type Frequency,
   type Rule,
 } from "@/contracts";
+import { GOLD_CHECKLIST, requirementTitle } from "@/lib/checklist";
 import type { ReviewField } from "@/store/review";
 
 export interface HouseholdSizeState {
@@ -27,6 +32,7 @@ export interface DerivedOutputs {
   benefit: CalculationResult | null;
   totalIncome: CalculationResult | null;
   comparison: CalculationResult | null;
+  checklist: ChecklistResult[];
 }
 
 /** Only confirmed values leave this function — everything else is null. */
@@ -45,11 +51,59 @@ function confirmedFrequency(field: ReviewField | undefined): Frequency {
   return parsed.success ? parsed.data : "unknown";
 }
 
+/** "06/16/2026" or ISO → "YYYY-MM-DD"; null when unparseable (engine then
+ *  asks for confirmation rather than judging freshness on a bad date). */
+function toIsoDate(value: string | number | null): string | null {
+  if (value === null) return null;
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const us = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (us) return `${us[3]}-${us[1].padStart(2, "0")}-${us[2].padStart(2, "0")}`;
+  return null;
+}
+
+/** Session documents as checklist metadata — confirmed values only count as
+ *  confirmed; proposed types/dates flow through flagged unconfirmed. */
+export function buildChecklistDocuments(
+  fields: ReviewField[],
+  documentId: string | null,
+): ChecklistDocumentMetadata[] {
+  if (!documentId) return [];
+  const byName = new Map(fields.map((f) => [f.extracted.field_name, f]));
+  const typeField = byName.get("document_type");
+  const dateField = byName.get("document_date");
+
+  const typeConfirmed = typeField?.state === "confirmed";
+  const rawType = typeConfirmed
+    ? typeField?.confirmedValue
+    : (typeField?.extracted.normalized_value ?? null);
+  const parsedType = DocumentTypeSchema.safeParse(
+    String(rawType ?? "").toLowerCase().trim().replaceAll(" ", "_"),
+  );
+
+  const dateConfirmed = dateField?.state === "confirmed";
+  const rawDate = dateConfirmed
+    ? dateField?.confirmedValue
+    : (dateField?.extracted.normalized_value ?? null);
+
+  return [
+    {
+      documentId,
+      documentType: parsedType.success ? parsedType.data : "other",
+      documentTypeConfirmed: typeConfirmed && parsedType.success,
+      documentDate: toIsoDate(rawDate ?? null),
+      documentDateConfirmed: dateConfirmed,
+      conflicting: false, // cross-document conflict detection arrives with multi-doc support
+    },
+  ];
+}
+
 export function buildDerived(
   fields: ReviewField[],
   householdSize: HouseholdSizeState,
   rule: Rule,
   context: CalculationContext,
+  documentId: string | null = null,
 ): DerivedOutputs {
   const byName = new Map(fields.map((f) => [f.extracted.field_name, f]));
 
@@ -89,27 +143,40 @@ export function buildDerived(
       )
     : null;
 
-  return { wage, benefit, totalIncome, comparison };
+  const checklist = evaluateChecklist({
+    checklist: GOLD_CHECKLIST,
+    documents: buildChecklistDocuments(fields, documentId),
+    attestations: { householdSizeConfirmed: householdSize.confirmedAt !== null },
+    asOfDate: context.computedAt.slice(0, 10),
+  });
+
+  return { wage, benefit, totalIncome, comparison, checklist };
 }
 
-const OUTPUT_LABELS: Record<keyof DerivedOutputs, string> = {
+const CALC_LABELS = {
   wage: "Annualized income",
   benefit: "Annualized benefit income",
   totalIncome: "Total annual income",
   comparison: "Income vs. limit comparison",
-};
+} as const;
 
 /**
  * Which outputs actually change between two derived states — the real
  * recompute list shown in "What will update" and counted in the toast.
- * "Application packet" is always included: it renders confirmed values, so
- * any confirmation changes it.
+ * Checklist rows diff per requirement. "Application packet" is always
+ * included: it renders confirmed values, so any confirmation changes it.
  */
 export function diffOutputs(before: DerivedOutputs, after: DerivedOutputs): string[] {
   const changed: string[] = [];
-  for (const key of Object.keys(OUTPUT_LABELS) as (keyof DerivedOutputs)[]) {
+  for (const key of Object.keys(CALC_LABELS) as (keyof typeof CALC_LABELS)[]) {
     if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) {
-      changed.push(OUTPUT_LABELS[key]);
+      changed.push(CALC_LABELS[key]);
+    }
+  }
+  const beforeRows = new Map(before.checklist.map((r) => [r.requirement_id, r]));
+  for (const row of after.checklist) {
+    if (JSON.stringify(beforeRows.get(row.requirement_id)) !== JSON.stringify(row)) {
+      changed.push(`Checklist: ${requirementTitle(row.requirement_id)}`);
     }
   }
   changed.push("Application packet");
