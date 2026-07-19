@@ -8,6 +8,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createApp } from "./app.ts";
 import { SESSIONS_ROOT } from "./sessions.ts";
 import { shutdownOcr } from "./ocr.ts";
+import type { RulesQuestionProvider } from "./rules/service.ts";
 
 const app = createApp();
 const fixture = readFileSync(
@@ -132,4 +133,103 @@ describe("extraction endpoint configuration", () => {
       await request(app).delete(`/session/${id}`).expect(204);
     },
   );
+});
+
+describe("rules endpoints", () => {
+  it("GET /rules returns the frozen corpus and threshold tables", async () => {
+    const res = await request(app).get("/rules").expect(200);
+
+    expect(res.body).toMatchObject({
+      corpus_version: "2026-frozen-2026-07-18",
+      frozen_at: "2026-07-18",
+      placeholder: false,
+    });
+    expect(res.body.rules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rule_id: "HUD-MTSP-002" }),
+      ]),
+    );
+  });
+
+  it.each([
+    "Am I eligible for this apartment?",
+    "What are my chances?",
+    "Will I be accepted?",
+    "Do I meet the requirements?",
+    "Should I apply based on my income?",
+    "Does my income pass the limit?",
+    "Can my household meet the requirements?",
+    "Is my income within the limit?",
+    "Am I under the income cap?",
+    "Is this household under the income limit?",
+  ])("POST /rules/ask deterministically refuses decision request: %s", async (question) => {
+    const res = await request(app)
+      .post("/rules/ask")
+      .send({ question })
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      abstained: true,
+      refusal: true,
+      citation: null,
+    });
+    expect(res.body.answer).toContain("A qualified human makes the final decision");
+  });
+
+  it("POST /rules/ask returns a corpus-grounded answer with trusted citation", async () => {
+    const rulesProvider: RulesQuestionProvider = {
+      name: "test",
+      isConfigured: () => true,
+      requestAnswer: async () => ({
+        answer: "The FY 2026 limits take effect May 1, 2026.",
+        rule_id: "HUD-MTSP-001",
+        abstained: false,
+        requested_program_id: "LIHTC",
+        requested_metro_id: "boston_cambridge_quincy_ma_nh_hmfa",
+        requested_rule_year: 2026,
+      }),
+    };
+    const rulesApp = createApp(rulesProvider);
+
+    const res = await request(rulesApp)
+      .post("/rules/ask")
+      .send({ question: "When do the FY 2026 limits take effect?" })
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      abstained: false,
+      refusal: false,
+      citation: { rule_id: "HUD-MTSP-001", effective_date: "2026-05-01" },
+    });
+  });
+
+  it("POST /rules/ask abstains rather than citing a rule for the wrong year or metro", async () => {
+    const rulesProvider: RulesQuestionProvider = {
+      name: "test",
+      isConfigured: () => true,
+      requestAnswer: async () => ({
+        answer: "A Boston FY 2026 threshold.",
+        rule_id: "HUD-MTSP-002",
+        abstained: false,
+        requested_program_id: "LIHTC",
+        requested_metro_id: "chicago_joliet_naperville_il_hmfa",
+        requested_rule_year: 2025,
+      }),
+    };
+    const rulesApp = createApp(rulesProvider);
+
+    const res = await request(rulesApp)
+      .post("/rules/ask")
+      .send({
+        question: "What is the 2025 Chicago threshold?",
+        confirmedContext: {
+          program_id: "LIHTC",
+          metro_id: "chicago_joliet_naperville_il_hmfa",
+          rule_year: 2025,
+        },
+      })
+      .expect(200);
+
+    expect(res.body).toMatchObject({ abstained: true, refusal: false, citation: null });
+  });
 });
