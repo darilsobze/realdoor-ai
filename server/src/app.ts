@@ -8,6 +8,11 @@ import { provider } from "./extraction/provider.ts";
 import { ExtractionAbstained } from "./extraction/schema.ts";
 import { extractDocument } from "./extraction/pipeline.ts";
 import { renderPdfPages } from "./ocr.ts";
+import { getRulesCorpus } from "./rules/corpus.ts";
+import { rulesProvider } from "./rules/provider.ts";
+import { DECISION_REFUSAL, isDecisionRequest } from "./rules/refusal.ts";
+import { RulesAskRequestSchema } from "./rules/schema.ts";
+import { askRulesQuestion, type RulesQuestionProvider } from "./rules/service.ts";
 import { appendAudit, readAudit } from "./audit.ts";
 import {
   addDocument,
@@ -54,12 +59,32 @@ function requireDocument(session: Session, docId: string): string {
   return path;
 }
 
-export function createApp() {
+export function createApp(rulesQuestionProvider: RulesQuestionProvider = rulesProvider) {
   const app = express();
   app.use(express.json({ limit: "1mb" }));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get("/rules", (_req, res) => {
+    res.json(getRulesCorpus());
+  });
+
+  app.post("/rules/ask", async (req, res) => {
+    const parsed = RulesAskRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new ApiError(422, "VALIDATION_FAILED", "Enter a rules question.", "question");
+    }
+    const { question, confirmedContext } = parsed.data;
+    if (isDecisionRequest(question)) {
+      res.json({ answer: DECISION_REFUSAL, citation: null, abstained: true, refusal: true });
+      return;
+    }
+    if (!rulesQuestionProvider.isConfigured()) {
+      throw new ApiError(503, "RULES_UNAVAILABLE", "Rules Q&A is not configured on this server.");
+    }
+    res.json(await askRulesQuestion(question, confirmedContext, rulesQuestionProvider));
   });
 
   app.post("/session", async (_req, res) => {
