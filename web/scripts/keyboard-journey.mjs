@@ -100,10 +100,18 @@ const focusedTab = await page.evaluate(() => document.activeElement?.textContent
 ok("nav: ArrowRight moves focus to the next tab", focusedTab === "Understand");
 await page.keyboard.press("Enter");
 await page.waitForURL(/understand/, { timeout: 5000 }).catch(() => {});
-// The income + comparison traces auto-play in sequence (comparison starts
-// after income). Wait for the LATER result (comparison) to settle, then assert
-// the corrected gross pay propagated to both.
-await page.waitForFunction(() => /under the published limit/.test(document.body.innerText), { timeout: 25000 }).catch(() => {});
+// The income + comparison cards wait behind Calculate/Compare — run them by
+// keyboard, then assert the corrected gross pay propagated to both.
+const calcBtn = page.locator('button:has-text("Calculate")');
+await calcBtn.waitFor({ timeout: 5000 }).catch(() => {});
+await calcBtn.focus();
+ok("understand: 'Calculate' button present and focusable (manual compute)", await calcBtn.evaluate((el) => el === document.activeElement).catch(() => false));
+await page.keyboard.press("Enter");
+await page.waitForFunction(() => /\$42,120/.test(document.body.innerText), { timeout: 20000 }).catch(() => {});
+const compareBtn = page.locator('button:has-text("Compare")').first();
+await compareBtn.focus();
+await page.keyboard.press("Enter");
+await page.waitForFunction(() => /under the published limit/.test(document.body.innerText), { timeout: 20000 }).catch(() => {});
 const understandText = await page.locator("main").innerText();
 ok("propagation: annualization ($42,120) + comparison recomputed on Understand", /42,120/.test(understandText) && /under the published limit/.test(understandText));
 const qbox = page.locator("#rules-question");

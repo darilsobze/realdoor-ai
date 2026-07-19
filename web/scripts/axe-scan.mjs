@@ -61,11 +61,16 @@ total += await scan("review (what-will-update dialog open)");
 await page.keyboard.press("Escape");
 await page.waitForTimeout(200);
 
-// Understand — the income/comparison computation traces auto-play; scan the
-// SETTLED state (transient fade frames lower opacity and aren't the end state;
-// reduced-motion users never see them).
+// Understand — income/comparison wait behind Calculate/Compare. Run them, then
+// scan the SETTLED state (transient fade frames lower opacity and aren't the
+// end state; reduced-motion users never see them). Also scan the idle state.
 await page.goto("http://localhost:5173/#/understand", { waitUntil: "networkidle" });
-await page.waitForFunction(() => /under the published limit/.test(document.body.innerText), { timeout: 25000 }).catch(() => {});
+await page.waitForTimeout(300);
+total += await scan("understand (idle — Calculate buttons)");
+await page.locator('button:has-text("Calculate")').click().catch(() => {});
+await page.waitForFunction(() => /\$41,080/.test(document.body.innerText), { timeout: 20000 }).catch(() => {});
+await page.locator('button:has-text("Compare")').first().click().catch(() => {});
+await page.waitForFunction(() => /under the published limit/.test(document.body.innerText), { timeout: 20000 }).catch(() => {});
 await page.waitForTimeout(600);
 total += await scan("understand (traces settled)");
 await page.locator('button:has-text("What is the income limit")').first().click();

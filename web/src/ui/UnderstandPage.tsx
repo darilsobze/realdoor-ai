@@ -4,12 +4,12 @@
 // steps come from the engine via the confirmed-profile store. Refusals and
 // abstentions render as calm informational panels: both are correct behavior.
 import { useMemo, useState } from "react";
-import { Ban, BookOpenCheck, Brain, Info, Loader2, MessageCircleQuestion, MessageCircleReply, ScanSearch, Search } from "lucide-react";
+import { Ban, BookOpenCheck, Brain, Info, Loader2, MessageCircleQuestion, MessageCircleReply, ScanSearch, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { DISCLAIMER_TEXT, type Rule, type ThresholdRow } from "@/contracts";
 import { IncomeTraceCard, ComparisonTraceCard } from "@/components/trace-cards";
 import { ComputationTrace, type TraceSource, type TraceStep } from "@/components/computation-trace";
@@ -54,6 +54,27 @@ function askSources(r: RulesAskResponse): TraceSource[] {
   ];
 }
 
+// Auto-emphasis for answer prose: bold currency, percentages, dates, and
+// FY-years so the key figures stand out. (Supplements the structured callouts;
+// the exact numbers still come from the cited rule, not the model text.)
+const RICH_SPLIT =
+  /(\$[\d,]+(?:\.\d{2})?|\b\d{1,3}(?:\.\d+)?%|\b\d{4}-\d{2}-\d{2}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b|\bFY\s?\d{4}\b)/;
+function renderRich(text: string): React.ReactNode {
+  return text.split(RICH_SPLIT).map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="font-semibold text-ink tnum">{part}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-subtle">{children}</p>
+  );
+}
+
 /** The answer body (revealed after the trace). Refusals/abstentions render as
  *  calm info panels; a grounded answer shows the prose (or the structured
  *  table when prose numbers aren't in the cited rule) + citation + disclaimer. */
@@ -76,58 +97,66 @@ function renderAnswerBody(
       </div>
     );
   }
+  const official = r.citation.authority === "official_hud" || r.citation.authority === "official_federal";
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {proseIsNumericallyGrounded(r.answer, r.citation.rule_id) ? (
-        <p className="text-body">{r.answer}</p>
+        <p className="text-[0.95rem] leading-relaxed text-body">{renderRich(r.answer)}</p>
       ) : (
-        <p className="text-body">
+        <p className="text-[0.95rem] leading-relaxed text-body">
           See the published table below — the exact figures come from the cited
           source, not from generated text.
         </p>
       )}
+
       {structuredThreshold && (
-        <p className="rounded-lg bg-muted px-3 py-2 text-sm text-body">
-          Published limit for your confirmed household size ({householdSize}):{" "}
-          <span className="tnum font-semibold text-ink">
+        <div className="rounded-lg border border-primary/15 bg-accent/50 px-4 py-3">
+          <SectionLabel>Published limit · {householdSize}-person household</SectionLabel>
+          <p className="mt-0.5 text-2xl font-semibold text-ink tnum">
             {USD.format(structuredThreshold.annual_income_limit_usd)}
-          </span>{" "}
-          per year <span className="text-subtle">(from the table itself)</span>
-        </p>
+            <span className="ml-1.5 text-sm font-normal text-subtle">per year</span>
+          </p>
+          <p className="text-xs text-subtle">Read straight from the published table — not generated.</p>
+        </div>
       )}
       {citedRule?.thresholds && !structuredThreshold && (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <caption className="sr-only">Published annual income limits by household size</caption>
             <thead>
-              <tr className="text-left text-xs text-subtle">
-                <th scope="col" className="py-1 pr-4 font-medium">Household size</th>
-                <th scope="col" className="py-1 font-medium">Annual income limit</th>
+              <tr className="bg-muted text-left text-xs text-subtle">
+                <th scope="col" className="px-3 py-2 font-medium">Household size</th>
+                <th scope="col" className="px-3 py-2 font-medium">Annual income limit</th>
               </tr>
             </thead>
             <tbody>
               {citedRule.thresholds.map((t) => (
                 <tr key={t.household_size} className="border-t border-border">
-                  <td className="tnum py-1 pr-4">{t.household_size}</td>
-                  <td className="tnum py-1">{USD.format(t.annual_income_limit_usd)}</td>
+                  <td className="tnum px-3 py-1.5">{t.household_size}</td>
+                  <td className="tnum px-3 py-1.5 font-medium text-ink">{USD.format(t.annual_income_limit_usd)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      <Separator />
-      <div className="flex flex-col gap-1 text-xs text-subtle">
-        <p className="font-medium text-body">
-          {AUTHORITY_LABELS[r.citation.authority] ?? r.citation.authority}
+
+      <div className="flex flex-col gap-1">
+        <SectionLabel>Source</SectionLabel>
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium", official ? "bg-status-confirmed-bg text-status-confirmed" : "bg-status-attention-bg text-status-attention")}>
+            <ShieldCheck aria-hidden="true" className="size-3.5" />
+            {AUTHORITY_LABELS[r.citation.authority] ?? r.citation.authority}
+          </span>
         </p>
-        <p>
-          {r.citation.section ?? r.citation.official_source}
-          {r.citation.page !== null && `, p. ${r.citation.page}`} · rule {r.citation.rule_id} ·
-          version {r.citation.rule_version} · effective {r.citation.effective_date}
+        <p className="text-xs text-subtle">
+          <span className="text-body">{r.citation.section ?? r.citation.official_source}</span>
+          {r.citation.page !== null && `, p. ${r.citation.page}`} · rule <em className="not-italic font-medium text-body">{r.citation.rule_id}</em> ·
+          version {r.citation.rule_version} · <span className="font-medium text-body">effective {r.citation.effective_date}</span>
         </p>
       </div>
-      <p className="text-sm text-body">{DISCLAIMER_TEXT}</p>
+
+      <p className="rounded-lg bg-muted px-3 py-2 text-xs italic text-body">{DISCLAIMER_TEXT}</p>
     </div>
   );
 }
@@ -211,97 +240,18 @@ export function UnderstandPage() {
       : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-(--container-reading) flex-col gap-6 px-6 py-8">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
       <header>
         <h1 className="text-xl">Understand the rules</h1>
         <p className="text-sm text-subtle">
-          Answers come only from the frozen rule library, always with the source.
+          Your numbers, computed on request from the frozen rules — then ask anything, answered only from the corpus with its source.
         </p>
       </header>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 p-5">
-          <form
-            className="flex flex-col gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submit(question);
-            }}
-          >
-            <Label htmlFor="rules-question">Your question about the program rules</Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                id="rules-question"
-                value={question}
-                placeholder="e.g. What counts as income?"
-                onChange={(e) => setQuestion(e.target.value)}
-              />
-              <Button type="submit" disabled={ask.kind === "loading" || question.trim() === ""}>
-                <MessageCircleQuestion aria-hidden="true" data-icon="inline-start" />
-                Ask
-              </Button>
-            </div>
-          </form>
-          <div className="flex flex-wrap gap-2">
-            {EXAMPLE_QUESTIONS.map((q) => (
-              <Button
-                key={q}
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-auto whitespace-normal text-left"
-                onClick={() => {
-                  setQuestion(q);
-                  void submit(q);
-                }}
-              >
-                {q}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <p aria-live="polite" className="sr-only">
-        {ask.kind === "loading"
-          ? "Checking the rule library…"
-          : ask.kind === "answered"
-            ? "Answer ready."
-            : ""}
-      </p>
-
-      {ask.kind === "loading" && (
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium text-ink shadow-card">
-          <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
-          Thinking…
-        </div>
-      )}
-
-      {ask.kind === "error" && (
-        <div role="alert" className="rounded-lg border border-status-blocking/30 bg-status-blocking-bg p-4 text-sm text-status-blocking">
-          {ask.message}
-        </div>
-      )}
-
-      {ask.kind === "answered" && (
-        <ComputationTrace
-          key={askId}
-          traceKey={`ask:${askId}`}
-          icon={BookOpenCheck}
-          title="Answer"
-          autoPlay
-          replayLabel="Re-run"
-          steps={askSteps(askedText, ask.response)}
-          sources={askSources(ask.response)}
-          announce={ask.response.refusal ? "Declined — this tool does not make decisions." : ask.response.citation ? "Answer ready with a citation." : "No authoritative rule found."}
-          result={() => renderAnswerBody(ask.response, citedRule, structuredThreshold, householdSize)}
-        />
-      )}
-
+      {/* Your numbers — Annual income, then Comparison, side by side. Each waits
+          behind a Calculate/Compare button and runs on request. */}
       <section aria-labelledby="your-numbers" className="flex flex-col gap-3">
-        <h2 id="your-numbers" className="text-lg">
-          Your numbers (computed deterministically)
-        </h2>
+        <h2 id="your-numbers" className="text-lg">Your numbers (computed deterministically)</h2>
         {derived.totalIncome === null && derived.wage === null ? (
           <p className="text-sm text-subtle">
             Upload and confirm an income document on the review screen and your
@@ -309,13 +259,20 @@ export function UnderstandPage() {
           </p>
         ) : (
           <div className="grid items-start gap-4 md:grid-cols-2">
-            <IncomeTraceCard derived={derived} profileVersion={state.profileVersion} autoPlay />
+            <IncomeTraceCard
+              derived={derived}
+              profileVersion={state.profileVersion}
+              autoPlay={false}
+              startLabel="Calculate"
+              idlePrompt="Turn your confirmed pay into a yearly figure — computed locally from the rules, step by step."
+            />
             <ComparisonTraceCard
               derived={derived}
               citation={SCORED_RULE.citation}
               profileVersion={state.profileVersion}
-              autoPlay
-              startDelayMs={2700}
+              autoPlay={false}
+              startLabel="Compare"
+              idlePrompt="Compare your annual income against the published limit for your household size."
             />
           </div>
         )}
@@ -323,6 +280,85 @@ export function UnderstandPage() {
           Formulas run in deterministic code on your confirmed values (profile v
           {state.profileVersion}) — never in a language model.
         </p>
+      </section>
+
+      {/* Ask — at the bottom. */}
+      <section aria-labelledby="ask-heading" className="flex flex-col gap-4">
+        <h2 id="ask-heading" className="text-lg">Ask about the rules</h2>
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-5">
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit(question);
+              }}
+            >
+              <Label htmlFor="rules-question">Your question about the program rules</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="rules-question"
+                  value={question}
+                  placeholder="e.g. What counts as income?"
+                  onChange={(e) => setQuestion(e.target.value)}
+                />
+                <Button type="submit" disabled={ask.kind === "loading" || question.trim() === ""}>
+                  <MessageCircleQuestion aria-hidden="true" data-icon="inline-start" />
+                  Ask
+                </Button>
+              </div>
+            </form>
+            <div className="flex flex-wrap gap-2">
+              {EXAMPLE_QUESTIONS.map((q) => (
+                <Button
+                  key={q}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto whitespace-normal text-left"
+                  onClick={() => {
+                    setQuestion(q);
+                    void submit(q);
+                  }}
+                >
+                  {q}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <p aria-live="polite" className="sr-only">
+          {ask.kind === "loading" ? "Checking the rule library…" : ask.kind === "answered" ? "Answer ready." : ""}
+        </p>
+
+        {ask.kind === "loading" && (
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium text-ink shadow-card">
+            <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
+            Thinking…
+          </div>
+        )}
+
+        {ask.kind === "error" && (
+          <div role="alert" className="rounded-lg border border-status-blocking/30 bg-status-blocking-bg p-4 text-sm text-status-blocking">
+            {ask.message}
+          </div>
+        )}
+
+        {ask.kind === "answered" && (
+          <ComputationTrace
+            key={askId}
+            traceKey={`ask:${askId}`}
+            icon={BookOpenCheck}
+            title="Answer"
+            autoPlay
+            replayLabel="Re-run"
+            steps={askSteps(askedText, ask.response)}
+            sources={askSources(ask.response)}
+            announce={ask.response.refusal ? "Declined — this tool does not make decisions." : ask.response.citation ? "Answer ready with a citation." : "No authoritative rule found."}
+            result={() => renderAnswerBody(ask.response, citedRule, structuredThreshold, householdSize)}
+          />
+        )}
       </section>
     </main>
   );

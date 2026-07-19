@@ -59,10 +59,14 @@ export function IncomeTraceCard({
   derived,
   profileVersion,
   autoPlay,
+  startLabel,
+  idlePrompt,
 }: {
   derived: DerivedOutputs;
   profileVersion: number;
   autoPlay: boolean;
+  startLabel?: string;
+  idlePrompt?: string;
 }) {
   const sources = [derived.wage, derived.benefit].filter(Boolean);
   const main = sources.length > 1 ? derived.totalIncome : (sources[0] ?? null);
@@ -105,6 +109,8 @@ export function IncomeTraceCard({
       title="Annual income (before taxes)"
       steps={steps}
       autoPlay={autoPlay}
+      startLabel={startLabel}
+      idlePrompt={idlePrompt}
       replayLabel="Recalculate"
       announce={`Annual income computed: ${USD.format(main.result_value)} per year.`}
       sources={[
@@ -135,12 +141,16 @@ export function ComparisonTraceCard({
   profileVersion,
   autoPlay,
   startDelayMs = 0,
+  startLabel,
+  idlePrompt,
 }: {
   derived: DerivedOutputs;
   citation: Citation;
   profileVersion: number;
   autoPlay: boolean;
   startDelayMs?: number;
+  startLabel?: string;
+  idlePrompt?: string;
 }) {
   const c = derived.comparison;
   if (!c || c.status !== "computed") {
@@ -183,6 +193,8 @@ export function ComparisonTraceCard({
       steps={steps}
       autoPlay={autoPlay}
       startDelayMs={startDelayMs}
+      startLabel={startLabel}
+      idlePrompt={idlePrompt}
       replayLabel="Recompare"
       announce={`Comparison computed: ${USD.format(Math.abs(diff))} ${diff <= 0 ? "under" : "over"} the published limit.`}
       sources={[
