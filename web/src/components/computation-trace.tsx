@@ -1,24 +1,93 @@
-// Agent-style computation trace: sequential steps (pending circle → active
-// pulse/spinner → green check), then the real result reveals. It is a REPLAY
-// over records that are already computed live — never a gate on computation,
-// and no step claims an action that didn't happen. After completion the steps
-// collapse to a "How this was computed" disclosure so cards stay compact.
+// Agent-style trace: sequential retrieval + computation steps (each with its
+// own icon; pending → active pulse → green check), then the real result
+// reveals. It REPLAYS records already computed live — never a gate on
+// computation, and no step claims an action that didn't happen (the app does
+// no web search; retrieval is from the frozen local corpus, and "View sources"
+// shows the real citation objects). After completion the steps collapse to a
+// "Thought for Xs" disclosure so cards stay compact.
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, Loader2, RotateCw, type LucideIcon } from "lucide-react";
+import { Brain, Check, ChevronDown, RotateCw, ShieldCheck, SquareArrowOutUpRight, type LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/lib/motion";
+
+/** Traces that have auto-played this session, keyed by `${cardId}:v${version}`. */
+const played = new Set<string>();
 
 export interface TraceStep {
   label: string;
   /** Real values pulled from the record (never invented). */
   detail?: React.ReactNode;
+  /** Per-step icon (thinking / searching / found / computing). */
+  icon?: LucideIcon;
 }
 
-const STEP_MS = 620;
+export interface TraceSource {
+  label: string;
+  sublabel?: string;
+  href?: string;
+}
 
-/** Traces that have auto-played this session, keyed by `${cardId}:v${version}`. */
-const played = new Set<string>();
+const STEP_MS = 640;
+
+/** The step rows (pending dim icon → active pulsing icon → green check).
+ *  Shared by the computation cards and the Ask trace. */
+export function TraceStepList({
+  steps,
+  activeStep,
+  armed,
+  done,
+}: {
+  steps: TraceStep[];
+  activeStep: number;
+  armed: boolean;
+  done: boolean;
+}) {
+  return (
+    <ol className="flex flex-col gap-0.5">
+      {steps.map((step, i) => {
+        const status =
+          !armed && !done
+            ? "pending"
+            : i < activeStep
+              ? "done"
+              : i === activeStep && !done
+                ? "active"
+                : done
+                  ? "done"
+                  : "pending";
+        const StepIcon = step.icon ?? Brain;
+        return (
+          <li
+            key={step.label}
+            className={cn(
+              "flex items-start gap-2.5 rounded-md px-2 py-1.5 transition-colors duration-150",
+              status === "active" && "animate-fade-up-fast bg-status-info-bg/60",
+            )}
+          >
+            <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden="true">
+              {status === "done" ? (
+                <Check className="size-3.5 text-status-confirmed" strokeWidth={3} />
+              ) : status === "active" ? (
+                <StepIcon className="size-3.5 animate-pulse text-primary" />
+              ) : (
+                <StepIcon className="size-3 text-subtle/50" />
+              )}
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className={cn("text-sm", status === "pending" ? "text-subtle" : "text-ink", status === "active" && "font-medium")}>
+                {step.label}
+              </span>
+              {step.detail && (status === "done" || status === "active") && (
+                <span className="tnum text-xs text-subtle">{step.detail}</span>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 export function ComputationTrace({
   traceKey,
@@ -26,43 +95,40 @@ export function ComputationTrace({
   title,
   steps,
   result,
+  sources = [],
   autoPlay,
   announce,
   startDelayMs = 0,
+  replayLabel = "Replay",
 }: {
   traceKey: string;
   icon: LucideIcon;
   title: string;
   steps: TraceStep[];
-  /** Final resolved body; `play` is true only right after an animated run so
-   *  count-ups / staggers animate once (instant when replayed-instantly). */
+  /** Final resolved body; `play` is true only after a fresh animated run. */
   result: (play: boolean) => React.ReactNode;
+  sources?: TraceSource[];
   autoPlay: boolean;
   announce: string;
-  /** Delay the first step (used to sequence sibling traces). */
   startDelayMs?: number;
+  replayLabel?: string;
 }) {
   const reduced = usePrefersReducedMotion();
   const shouldAnimate = autoPlay && !reduced && !played.has(traceKey);
-
   const [animating, setAnimating] = useState(shouldAnimate);
   const [armed, setArmed] = useState(!shouldAnimate || startDelayMs === 0);
   const [activeStep, setActiveStep] = useState(shouldAnimate ? 0 : steps.length);
+  const [playMode, setPlayMode] = useState(shouldAnimate);
+  const [runId, setRunId] = useState(0);
+  const [live, setLive] = useState("");
+  const stepCount = useRef(steps.length);
+  stepCount.current = steps.length;
 
   useEffect(() => {
     if (armed) return;
     const t = setTimeout(() => setArmed(true), startDelayMs);
     return () => clearTimeout(t);
   }, [armed, startDelayMs]);
-  // playMode gates the result count-up/stagger; runId remounts the result on
-  // each fresh completion so those animations re-run.
-  const [playMode, setPlayMode] = useState(shouldAnimate);
-  const [runId, setRunId] = useState(0);
-  const [showSteps, setShowSteps] = useState(false);
-  const [live, setLive] = useState("");
-  // Keep timers stable across step count identity.
-  const stepCount = useRef(steps.length);
-  stepCount.current = steps.length;
 
   useEffect(() => {
     if (!animating || !armed) return;
@@ -78,16 +144,17 @@ export function ComputationTrace({
   }, [animating, armed, activeStep, traceKey, announce]);
 
   const done = !animating;
-
+  const animatedRun = playMode && runId > 0;
   function replay() {
-    setShowSteps(false);
     setPlayMode(true);
     setArmed(true);
     setActiveStep(0);
     setAnimating(true);
   }
 
-  const stepsVisible = animating || showSteps;
+  const [showSteps, setShowSteps] = useState(false);
+  const [showSources, setShowSources] = useState(false);
+  const thoughtSeconds = ((steps.length * STEP_MS) / 1000).toFixed(0);
 
   return (
     <Card>
@@ -100,73 +167,86 @@ export function ComputationTrace({
           {done && (
             <button
               type="button"
-              onClick={replay}
+              onClick={() => { setShowSteps(false); replay(); }}
               className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-subtle hover:text-primary"
             >
               <RotateCw aria-hidden="true" className="size-3" />
-              Replay
+              {replayLabel}
             </button>
           )}
         </div>
 
-        {stepsVisible && (
-          <ol className="flex flex-col gap-0.5">
-            {steps.map((step, i) => {
-              const status =
-                animating && !armed
-                  ? "pending"
-                  : i < activeStep
-                    ? "done"
-                    : i === activeStep && animating
-                      ? "active"
-                      : done
-                        ? "done"
-                        : "pending";
-              return (
-                <li
-                  key={step.label}
-                  className={cn(
-                    "flex items-start gap-2.5 rounded-md px-2 py-1.5 transition-colors duration-150",
-                    status === "active" && "animate-fade-up-fast bg-status-info-bg/60",
-                  )}
-                >
-                  <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden="true">
-                    {status === "done" && <Check className="size-3.5 text-status-confirmed" strokeWidth={3} />}
-                    {status === "active" && <Loader2 className="size-3.5 animate-spin text-primary" />}
-                    {status === "pending" && <span className="size-2 rounded-full border border-subtle/60" />}
-                  </span>
-                  <span className="flex flex-col gap-0.5">
-                    <span className={cn("text-sm", status === "pending" ? "text-subtle" : "text-ink", status === "active" && "font-medium")}>
-                      {step.label}
-                    </span>
-                    {step.detail && (status === "done" || status === "active") && (
-                      <span className="tnum text-xs text-subtle">{step.detail}</span>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
+        {/* Live steps during the animation. */}
+        {animating && <TraceStepList steps={steps} activeStep={activeStep} armed={armed} done={false} />}
 
         {/* Result reveals once the steps finish; remounts per run so the
             count-up / row stagger re-animate on (re)play. */}
         {done && (
-          <div key={runId} className={cn(playMode && runId > 0 && "animate-value-pulse rounded-md")}>
-            {result(playMode && runId > 0)}
+          <div key={runId} className={cn(animatedRun && "animate-value-pulse rounded-md")}>
+            {result(animatedRun)}
           </div>
         )}
 
         {done && (
-          <button
-            type="button"
-            aria-expanded={showSteps}
-            onClick={() => setShowSteps((v) => !v)}
-            className="inline-flex w-fit items-center gap-1 text-xs text-subtle hover:text-ink"
-          >
-            <ChevronRight aria-hidden="true" className={cn("size-3 transition-transform", showSteps && "rotate-90")} />
-            How this was computed
-          </button>
+          <div className="flex flex-col gap-2">
+            {/* "Thought for Xs · N steps" — collapsible, reveals the steps. */}
+            <div className="overflow-hidden rounded-lg border bg-background">
+              <button
+                type="button"
+                aria-expanded={showSteps}
+                onClick={() => setShowSteps((v) => !v)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-subtle hover:text-ink"
+              >
+                <Brain aria-hidden="true" className="size-3.5 text-subtle" />
+                <span className="flex-1">
+                  {animatedRun ? `Thought for ${thoughtSeconds}s` : "Steps"} · {steps.length} steps
+                </span>
+                <ChevronDown aria-hidden="true" className={cn("size-3.5 transition-transform", showSteps && "rotate-180")} />
+              </button>
+              {showSteps && (
+                <div className="border-t px-1 py-1">
+                  <TraceStepList steps={steps} activeStep={steps.length} armed done />
+                </div>
+              )}
+            </div>
+
+            {sources.length > 0 && (
+              <div className="overflow-hidden rounded-lg border bg-background">
+                <button
+                  type="button"
+                  aria-expanded={showSources}
+                  onClick={() => setShowSources((v) => !v)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-ink hover:text-primary"
+                >
+                  <ShieldCheck aria-hidden="true" className="size-3.5 text-status-confirmed" />
+                  <span className="flex-1">View the sources</span>
+                  <ChevronDown aria-hidden="true" className={cn("size-3.5 transition-transform", showSources && "rotate-180")} />
+                </button>
+                {showSources && (
+                  <ul className="flex flex-col gap-1.5 border-t px-3 py-2">
+                    {sources.map((s) => (
+                      <li key={s.label} className="flex flex-col gap-0.5 text-xs">
+                        {s.href ? (
+                          <a
+                            href={s.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex w-fit items-center gap-1 font-medium text-primary underline underline-offset-2"
+                          >
+                            <SquareArrowOutUpRight aria-hidden="true" className="size-3" />
+                            {s.label}
+                          </a>
+                        ) : (
+                          <span className="font-medium text-ink">{s.label}</span>
+                        )}
+                        {s.sublabel && <span className="text-subtle">{s.sublabel}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         <span aria-live="polite" className="sr-only">{live}</span>

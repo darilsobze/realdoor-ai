@@ -1,17 +1,27 @@
 // The three computation-trace cards. Every step label and detail is pulled
-// from the real ComputedCalculation / ChecklistResult records — no invented
-// actions, no fake retrieval. The "result" render is the same information the
-// static panels showed, with a count-up / staggered reveal on a fresh play.
-import { Calculator, ListChecks, Scale, SquareArrowOutUpRight } from "lucide-react";
+// from the real ComputedCalculation / ChecklistResult records. The retrieval
+// step reads the FROZEN LOCAL CORPUS (data/rules/rules.json) — the app does no
+// web search — and "View the sources" lists the real citation objects.
+import {
+  Brain,
+  Calculator,
+  ClipboardList,
+  ListChecks,
+  Scale,
+  ScanSearch,
+  Search,
+  SquareArrowOutUpRight,
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/status-badge";
-import { ComputationTrace, type TraceStep } from "@/components/computation-trace";
+import { ComputationTrace, type TraceSource, type TraceStep } from "@/components/computation-trace";
 import {
   DISCLAIMER_TEXT,
   type Citation,
   type ComputedCalculation,
 } from "@/contracts";
-import { requirementTitle } from "@/lib/checklist";
+import { requirementTitle, GOLD_CHECKLIST } from "@/lib/checklist";
+import { ruleById } from "@/lib/rules";
 import type { DerivedOutputs } from "@/lib/calculations";
 import { useCountUp } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -28,7 +38,23 @@ function inputVal(calc: ComputedCalculation, name: string) {
   return calc.inputs.find((i) => i.name === name);
 }
 
-/** Annual income — 4 steps, result counts up. */
+/** The frozen corpus rule behind a calculation, as a source entry. */
+function ruleSource(ruleId: string | null, label: string): TraceSource | null {
+  const rule = ruleId ? ruleById(ruleId) : null;
+  if (!rule) return null;
+  const c = rule.citation;
+  const authorityLabel =
+    c.rule_version.includes("frozen") && rule.authority === "hackathon_simulation"
+      ? "Frozen challenge convention"
+      : "Official source";
+  return {
+    label,
+    sublabel: `${authorityLabel} · rule ${rule.rule_id}${c.page ? ` · p. ${c.page}` : ""} · effective ${c.effective_date}`,
+    href: c.official_source?.startsWith("http") ? c.official_source : undefined,
+  };
+}
+
+/** Annual income — thinking → search internal → formula found → computing → done. */
 export function IncomeTraceCard({
   derived,
   profileVersion,
@@ -47,7 +73,7 @@ export function IncomeTraceCard({
         traceKey={`income:v${profileVersion}`}
         icon={Calculator}
         title="Annual income (before taxes)"
-        steps={[{ label: "Waiting on confirmed income" }]}
+        steps={[{ label: "Waiting on confirmed income", icon: Brain }]}
         autoPlay={false}
         announce=""
         result={() => (
@@ -63,17 +89,14 @@ export function IncomeTraceCard({
   const freq = String(amount?.unit ?? "USD/period").split("/")[1] ?? "period";
   const multiplier = inputVal(main, "periods_per_year")?.value ?? "";
   const steps: TraceStep[] = [
-    {
-      label: "Gathering your confirmed values",
-      detail: `Gross pay ${USD0.format(Number(amount?.value ?? 0))} · ${freq} · profile v${main.profile_version}`,
-    },
-    {
-      label: "Selecting the formula",
-      detail: `annualize v${main.formula_version} · ${freq} ×${multiplier}`,
-    },
-    { label: "Computing", detail: main.formula },
-    { label: "Done" },
+    { label: "Reading your confirmed values", icon: Brain, detail: `Gross pay ${USD0.format(Number(amount?.value ?? 0))} · ${freq} · profile v${main.profile_version}` },
+    { label: "Searching the internal rule library", icon: Search, detail: GOLD_CHECKLIST.checklist_version.replace("application_checklists_", "corpus ").slice(0, 34) },
+    { label: "Relevant formula found", icon: ScanSearch, detail: `annualize v${main.formula_version} · ${freq} ×${multiplier}` },
+    { label: "Computing", icon: Calculator, detail: main.formula },
+    { label: "Done", icon: Calculator },
   ];
+
+  const src = ruleSource(main.source_rule_id, "Income annualization method");
 
   return (
     <ComputationTrace
@@ -82,7 +105,12 @@ export function IncomeTraceCard({
       title="Annual income (before taxes)"
       steps={steps}
       autoPlay={autoPlay}
+      replayLabel="Recalculate"
       announce={`Annual income computed: ${USD.format(main.result_value)} per year.`}
+      sources={[
+        ...(src ? [src] : []),
+        { label: "Your confirmed values", sublabel: `Reviewed on your document · profile v${main.profile_version}` },
+      ]}
       result={(play) => (
         <div className="flex flex-col gap-2">
           <p className="text-xl font-semibold text-ink">
@@ -100,7 +128,7 @@ export function IncomeTraceCard({
   );
 }
 
-/** Comparison — 5 steps, result counts up + disclaimer. */
+/** Comparison — thinking → search internal → table found → household row → compare → done. */
 export function ComparisonTraceCard({
   derived,
   citation,
@@ -121,7 +149,7 @@ export function ComparisonTraceCard({
         traceKey={`comparison:v${profileVersion}`}
         icon={Scale}
         title="Compared with the published income limit"
-        steps={[{ label: "Waiting on confirmed income and household size" }]}
+        steps={[{ label: "Waiting on confirmed income and household size", icon: Brain }]}
         autoPlay={false}
         announce=""
         result={() => (
@@ -139,20 +167,12 @@ export function ComparisonTraceCard({
   const diff = c.result_value;
 
   const steps: TraceStep[] = [
-    { label: "Loading the published table", detail: `FY${citation.rule_year} MTSP, frozen corpus` },
-    {
-      label: "Selecting your household row",
-      detail: `${String(hh?.value)}-person household → ${USD0.format(Number(limit?.value))}`,
-    },
-    {
-      label: "Reading the source",
-      detail: `${citation.section}, p. ${citation.page} · effective ${citation.effective_date}`,
-    },
-    {
-      label: "Comparing",
-      detail: `${USD0.format(Number(income?.value))} − ${USD0.format(Number(limit?.value))}`,
-    },
-    { label: "Done" },
+    { label: "Reading your annual income", icon: Brain, detail: `${USD0.format(Number(income?.value))} per year` },
+    { label: "Searching the internal rule library", icon: Search, detail: `FY${citation.rule_year} MTSP, frozen corpus` },
+    { label: "Published limit table found", icon: ScanSearch, detail: `${citation.section}, p. ${citation.page}` },
+    { label: "Selecting your household row", icon: Scale, detail: `${String(hh?.value)}-person household → ${USD0.format(Number(limit?.value))}` },
+    { label: "Comparing", icon: Scale, detail: `${USD0.format(Number(income?.value))} − ${USD0.format(Number(limit?.value))}` },
+    { label: "Done", icon: Scale },
   ];
 
   return (
@@ -163,7 +183,16 @@ export function ComparisonTraceCard({
       steps={steps}
       autoPlay={autoPlay}
       startDelayMs={startDelayMs}
+      replayLabel="Recompare"
       announce={`Comparison computed: ${USD.format(Math.abs(diff))} ${diff <= 0 ? "under" : "over"} the published limit.`}
+      sources={[
+        {
+          label: "FY2026 MTSP income limits (60%)",
+          sublabel: `${citation.section}, p. ${citation.page} · effective ${citation.effective_date}`,
+          href: citation.official_source?.startsWith("http") ? citation.official_source : undefined,
+        },
+        ...(ruleSource(c.source_rule_id, "Threshold comparison rule") ? [ruleSource(c.source_rule_id, "Threshold comparison rule")!] : []),
+      ]}
       result={(play) => (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-body">
@@ -203,7 +232,7 @@ export function ComparisonTraceCard({
   );
 }
 
-/** Checklist — 3 method steps, then rows resolve one by one (staggered). */
+/** Checklist — thinking → load checklist → match → check → done; rows stagger in. */
 export function ChecklistTraceCard({
   derived,
   checklistVersion,
@@ -218,9 +247,11 @@ export function ChecklistTraceCard({
   autoPlay: boolean;
 }) {
   const steps: TraceStep[] = [
-    { label: "Loading the frozen checklist", detail: checklistVersion },
-    { label: "Matching your confirmed documents", detail: matchedSummary },
-    { label: "Checking dates and applicability" },
+    { label: "Reading your confirmed documents", icon: Brain, detail: matchedSummary },
+    { label: "Loading the frozen checklist", icon: Search, detail: checklistVersion },
+    { label: "Matching documents to requirements", icon: ScanSearch },
+    { label: "Checking dates and applicability", icon: ClipboardList },
+    { label: "Done", icon: ListChecks },
   ];
 
   return (
@@ -230,7 +261,12 @@ export function ChecklistTraceCard({
       title="Application checklist"
       steps={steps}
       autoPlay={autoPlay}
+      replayLabel="Re-check"
       announce={`Checklist evaluated: ${derived.checklist.length} requirements.`}
+      sources={[
+        { label: "Frozen application checklist", sublabel: `${checklistVersion} · organizer reference` },
+        { label: "Your confirmed documents", sublabel: matchedSummary },
+      ]}
       result={(play) => (
         <div className="flex flex-col gap-2.5">
           <ul className="flex flex-col gap-2.5">
@@ -248,9 +284,6 @@ export function ChecklistTraceCard({
               </li>
             ))}
           </ul>
-          <p className="text-xs text-subtle">
-            Evaluated against the frozen checklist ({checklistVersion}) using your confirmed values only.
-          </p>
         </div>
       )}
     />
