@@ -13,17 +13,24 @@ scoring fields the application is prohibited from extracting.
 - Use `scripts/evaluate-gold.ts` as the CLI. It runs extraction when requested,
   stores one validated result per document in an ignored cache directory, and
   can rescore cached results without OpenAI calls.
-- Score only allowlisted, gold-annotated targets. Map `pay_date` to
-  `document_date` and `monthly_benefit` to `benefit_amount`. Score the top-level
-  gold `document_type` as a classification; exclude it from box metrics.
+- Score only allowlisted, gold-annotated targets. Map `application_date` and
+  `pay_date` to `document_date`, and `monthly_benefit` to `benefit_amount`.
+  Score the top-level gold `document_type` as a separate classification metric;
+  exclude it from value-field, abstention, and box denominators.
 - Report unscorable allowlisted fields such as `employer_name` separately.
+- Report non-abstained, globally scorable predictions without a document target
+  as unexpected predictions, and include them in the value-accuracy denominator.
 - Convert gold boxes from bottom-left `[x1,y1,x2,y2]` PDF coordinates to the
   top-left `{x,y,width,height}` PDF coordinates emitted by RealDoor.
 - Box metrics are mean IoU and the percentage of scorable boxes with IoU at
   least 0.5. Missing/abstained boxes contribute IoU zero.
-- Field accuracy is exact normalized-value matches divided by scorable targets;
-  abstentions count as incorrect. Abstention rate is abstained scorable targets
-  divided by scorable targets.
+- Value-field accuracy is exact normalized-value matches divided by gold value
+  targets plus unexpected predictions. Gold-target recall and value-field
+  abstention are also reported over gold value targets alone.
+- Cache entries include evaluation/extraction versions, provider/model, PDF
+  SHA-256, and gold-record SHA-256. Reuse rejects stale provenance. Organizer
+  PDF paths must remain inside the document directory, and cache replacement is
+  atomic so interrupted runs remain resumable.
 - Write machine-readable JSON and a concise Markdown summary to the cache, and
   print the Markdown summary to stdout.
 

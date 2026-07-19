@@ -10,6 +10,20 @@
 
 ---
 
+## Review hardening incorporated during implementation
+
+- Document-type accuracy is separate from value-field accuracy and abstention.
+- `application_date` maps to `document_date`; unexpected supported predictions
+  are reported and penalize value-field accuracy.
+- Cache envelopes bind results to provider/model, extraction/evaluation version,
+  PDF hash, and gold-record hash.
+- Organizer PDF paths are basename- and containment-validated, including
+  realpath checks; cache writes use atomic rename.
+- The organizer set is validated as exactly 24 unique documents with unique
+  aliased field targets.
+
+---
+
 ## File structure
 
 - Create `src/evaluation/gold-metrics.ts`: gold schemas, target construction, scoring, IoU, report formatting.

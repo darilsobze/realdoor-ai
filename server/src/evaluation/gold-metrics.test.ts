@@ -94,6 +94,40 @@ const benefitGold: GoldDocument = {
   ],
 };
 
+const applicationGold: GoldDocument = {
+  document_id: "HH-001-D01",
+  document_type: "application_summary",
+  file_name: "hh-001_d01_application_summary.pdf",
+  page_count: 1,
+  page_size_points: [612, 792],
+  fields: [
+    {
+      field: "application_date",
+      value: "2026-07-10",
+      page: 1,
+      bbox: [40, 518, 95, 532],
+      bbox_units: "pdf_points_bottom_left_origin",
+    },
+  ],
+};
+
+const gigGold: GoldDocument = {
+  document_id: "HH-004-D04",
+  document_type: "gig_statement",
+  file_name: "hh-004_d04_gig_statement.pdf",
+  page_count: 1,
+  page_size_points: [612, 792],
+  fields: [
+    {
+      field: "gross_receipts",
+      value: 1200,
+      page: 1,
+      bbox: [55, 500, 110, 516],
+      bbox_units: "pdf_points_bottom_left_origin",
+    },
+  ],
+};
+
 function extracted(
   fieldName: FieldName,
   normalizedValue: string | number | null,
@@ -134,6 +168,10 @@ describe("gold target construction", () => {
       "document_type",
       "benefit_amount",
     ]);
+    expect(buildGoldTargets(applicationGold).map((target) => target.fieldName)).toEqual([
+      "document_type",
+      "document_date",
+    ]);
   });
 
   it("never scores non-allowlisted gold fields", () => {
@@ -158,12 +196,33 @@ describe("gold target construction", () => {
     const documents = parseGoldJsonl(raw);
 
     expect(documents).toHaveLength(24);
-    expect(documents.flatMap(buildGoldTargets)).toHaveLength(93);
+    expect(documents.flatMap(buildGoldTargets)).toHaveLength(99);
   });
 
   it("identifies the line containing malformed gold data", () => {
     const malformed = JSON.stringify({ ...payStubGold, page_size_points: [612] });
     expect(() => parseGoldJsonl(malformed)).toThrow(/gold line 1/i);
+  });
+
+  it("rejects a truncated or duplicate organizer gold set", () => {
+    expect(() => parseGoldJsonl(JSON.stringify(payStubGold))).toThrow(/expected 24.*received 1/i);
+
+    const raw = readFileSync(
+      join(
+        process.cwd(),
+        "..",
+        "realdoor-hackathon-starter-pack",
+        "synthetic_documents",
+        "gold",
+        "document_gold.jsonl",
+      ),
+      "utf8",
+    );
+    const rows = raw.trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    rows[23].document_id = rows[0].document_id;
+    expect(() => parseGoldJsonl(rows.map((row) => JSON.stringify(row)).join("\n"))).toThrow(
+      /duplicate document_id/i,
+    );
   });
 });
 
@@ -182,12 +241,16 @@ describe("gold-set scoring", () => {
     };
 
     const report = scoreGoldSet([payStubGold], [extraction]);
-    expect(report.field).toEqual({
-      targets: 3,
-      correct: 2,
-      accuracy: 2 / 3,
+    expect(report.documentType).toEqual({ targets: 1, correct: 1, accuracy: 1 });
+    expect(report.valueFields).toEqual({
+      goldTargets: 2,
+      correct: 1,
+      unexpectedPredictions: 0,
+      accuracyDenominator: 2,
+      accuracy: 0.5,
+      goldTargetRecall: 0.5,
       abstained: 1,
-      abstentionRate: 1 / 3,
+      abstentionRate: 0.5,
     });
     expect(report.box).toEqual({
       targets: 2,
@@ -195,6 +258,49 @@ describe("gold-set scoring", () => {
       iouAt50: 1,
       iouAt50Rate: 0.5,
     });
+    expect(report.unscorableAllowlistedFields).toContain("employer_name");
+  });
+
+  it("penalizes supported allowlisted predictions that have no document target", () => {
+    const payExtraction: ExtractionResult = {
+      document_id: payStubGold.document_id,
+      extraction_version: "extract-v3",
+      fields: [
+        extracted("document_type", "pay_stub", { bbox: null, page: null }),
+        extracted("document_date", "2026-06-27", {
+          bbox: goldBoxToTopLeft([330, 658, 385, 672], 792),
+        }),
+        extracted("gross_pay", 2166, {
+          bbox: goldBoxToTopLeft([340, 528, 397, 544], 792),
+        }),
+      ],
+    };
+    const gigExtraction: ExtractionResult = {
+      document_id: gigGold.document_id,
+      extraction_version: "extract-v3",
+      fields: [
+        extracted("document_type", "gig_statement", {
+          document_id: gigGold.document_id,
+          bbox: null,
+          page: null,
+        }),
+        extracted("gross_pay", 1200, { document_id: gigGold.document_id }),
+        extracted("employer_name", "GigNow", { document_id: gigGold.document_id }),
+      ],
+    };
+
+    const report = scoreGoldSet([payStubGold, gigGold], [payExtraction, gigExtraction]);
+    expect(report.valueFields).toMatchObject({
+      goldTargets: 2,
+      correct: 2,
+      unexpectedPredictions: 1,
+      accuracyDenominator: 3,
+      accuracy: 2 / 3,
+      goldTargetRecall: 1,
+    });
+    expect(report.unexpectedDetails).toEqual([
+      { documentId: gigGold.document_id, fieldName: "gross_pay", predictedValue: 1200 },
+    ]);
     expect(report.unscorableAllowlistedFields).toContain("employer_name");
   });
 
@@ -232,13 +338,23 @@ describe("gold-set scoring", () => {
         }),
       ],
     };
-    const markdown = formatGoldMetricsMarkdown(scoreGoldSet([payStubGold], [extraction]));
+    const markdown = formatGoldMetricsMarkdown(scoreGoldSet([payStubGold], [extraction]), {
+      providerName: "openai:gpt-5-mini",
+      extractionVersion: "extract-v3",
+      evaluationSchemaVersion: "gold-eval-v2",
+    });
 
     expect(markdown).toContain("Documents: 1");
-    expect(markdown).toContain("Field accuracy: 2/3 (66.67%)");
+    expect(markdown).toContain("Provider: openai:gpt-5-mini");
+    expect(markdown).toContain("Extraction version: extract-v3");
+    expect(markdown).toContain("Evaluation schema: gold-eval-v2");
+    expect(markdown).toContain("Document-type accuracy: 1/1 (100.00%)");
+    expect(markdown).toContain("Value-field accuracy: 1/2 (50.00%)");
+    expect(markdown).toContain("Gold-target recall: 1/2 (50.00%)");
     expect(markdown).toContain("Mean IoU: 50.00%");
     expect(markdown).toContain("IoU ≥ 0.5: 1/2 (50.00%)");
-    expect(markdown).toContain("Abstention rate: 1/3 (33.33%)");
+    expect(markdown).toContain("Value-field abstention rate: 1/2 (50.00%)");
+    expect(markdown).toContain("Unexpected predictions: 0");
     expect(markdown).toContain("employer_name");
   });
 });

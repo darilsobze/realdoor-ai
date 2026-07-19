@@ -4,12 +4,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractDocument } from "../src/extraction/pipeline.ts";
 import { provider } from "../src/extraction/provider.ts";
+import { EXTRACTION_VERSION } from "../src/extraction/schema.ts";
 import {
   formatGoldMetricsMarkdown,
   parseGoldJsonl,
   scoreGoldSet,
 } from "../src/evaluation/gold-metrics.ts";
 import {
+  GOLD_EVALUATION_SCHEMA_VERSION,
   loadGoldExtractions,
   parseEvaluationMode,
 } from "../src/evaluation/gold-runner.ts";
@@ -31,6 +33,11 @@ async function main(): Promise<void> {
   const mode = parseEvaluationMode(process.argv.slice(2));
   const documents = parseGoldJsonl(await readFile(goldPath, "utf8"));
   let extractedCount = 0;
+  const provenance = {
+    providerName: provider.name,
+    extractionVersion: EXTRACTION_VERSION,
+    evaluationSchemaVersion: GOLD_EVALUATION_SCHEMA_VERSION,
+  };
 
   try {
     const extractions = await loadGoldExtractions({
@@ -38,6 +45,8 @@ async function main(): Promise<void> {
       documentRoot,
       cacheDir,
       mode,
+      providerName: provider.name,
+      extractionVersion: EXTRACTION_VERSION,
       extract: async (documentId, pdf) => {
         if (!provider.isConfigured()) {
           throw new Error(
@@ -54,8 +63,11 @@ async function main(): Promise<void> {
     });
 
     const report = scoreGoldSet(documents, extractions);
-    const markdown = formatGoldMetricsMarkdown(report);
-    await writeFile(join(cacheDir, "metrics.json"), `${JSON.stringify(report, null, 2)}\n`);
+    const markdown = formatGoldMetricsMarkdown(report, provenance);
+    await writeFile(
+      join(cacheDir, "metrics.json"),
+      `${JSON.stringify({ provenance, metrics: report }, null, 2)}\n`,
+    );
     await writeFile(join(cacheDir, "metrics.md"), markdown);
     process.stdout.write(markdown);
     console.error(

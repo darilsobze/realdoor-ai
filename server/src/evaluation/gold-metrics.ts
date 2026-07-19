@@ -47,10 +47,18 @@ export interface GoldTargetResult extends GoldTarget {
 
 export interface GoldMetricsReport {
   documents: number;
-  field: {
+  documentType: {
     targets: number;
     correct: number;
     accuracy: number;
+  };
+  valueFields: {
+    goldTargets: number;
+    correct: number;
+    unexpectedPredictions: number;
+    accuracyDenominator: number;
+    accuracy: number;
+    goldTargetRecall: number;
     abstained: number;
     abstentionRate: number;
   };
@@ -61,16 +69,22 @@ export interface GoldMetricsReport {
     iouAt50Rate: number;
   };
   unscorableAllowlistedFields: FieldName[];
+  unexpectedDetails: Array<{
+    documentId: string;
+    fieldName: FieldName;
+    predictedValue: string | number;
+  }>;
   details: GoldTargetResult[];
 }
 
 const GOLD_FIELD_ALIASES: Readonly<Record<string, FieldName>> = {
+  application_date: "document_date",
   pay_date: "document_date",
   monthly_benefit: "benefit_amount",
 };
 
 export function parseGoldJsonl(raw: string): GoldDocument[] {
-  return raw
+  const documents = raw
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
@@ -82,6 +96,32 @@ export function parseGoldJsonl(raw: string): GoldDocument[] {
         throw new Error(`Invalid gold line ${index + 1}: ${reason}`);
       }
     });
+  if (documents.length !== 24) {
+    throw new Error(`Expected 24 organizer gold documents; received ${documents.length}.`);
+  }
+  const ids = new Set<string>();
+  const files = new Set<string>();
+  for (const document of documents) {
+    if (ids.has(document.document_id)) {
+      throw new Error(`Duplicate document_id in organizer gold set: ${document.document_id}.`);
+    }
+    if (files.has(document.file_name)) {
+      throw new Error(`Duplicate file_name in organizer gold set: ${document.file_name}.`);
+    }
+    ids.add(document.document_id);
+    files.add(document.file_name);
+
+    const targetFields = new Set<FieldName>();
+    for (const target of buildGoldTargets(document)) {
+      if (targetFields.has(target.fieldName)) {
+        throw new Error(
+          `Duplicate aliased target ${target.fieldName} for ${document.document_id}.`,
+        );
+      }
+      targetFields.add(target.fieldName);
+    }
+  }
+  return documents;
 }
 
 export function goldBoxToTopLeft(
@@ -175,21 +215,57 @@ export function scoreGoldSet(
     return { ...target, predictedValue, abstained, valueCorrect, iou };
   });
 
-  const correct = details.filter((detail) => detail.valueCorrect).length;
-  const abstained = details.filter((detail) => detail.abstained).length;
-  const boxDetails = details.filter((detail) => detail.goldBox !== null);
+  const documentTypeDetails = details.filter((detail) => detail.fieldName === "document_type");
+  const valueDetails = details.filter((detail) => detail.fieldName !== "document_type");
+  const documentTypeCorrect = documentTypeDetails.filter((detail) => detail.valueCorrect).length;
+  const valueCorrect = valueDetails.filter((detail) => detail.valueCorrect).length;
+  const valueAbstained = valueDetails.filter((detail) => detail.abstained).length;
+  const boxDetails = valueDetails.filter((detail) => detail.goldBox !== null);
   const iouSum = boxDetails.reduce((sum, detail) => sum + (detail.iou ?? 0), 0);
   const iouAt50 = boxDetails.filter((detail) => (detail.iou ?? 0) >= 0.5).length;
   const targetedFields = new Set(targets.map((target) => target.fieldName));
+  const unscorableAllowlistedFields = FIELD_ALLOWLIST.filter((field) => !targetedFields.has(field));
+  const unscorable = new Set<FieldName>(unscorableAllowlistedFields);
+  const targetsByDocument = new Map<string, Set<FieldName>>();
+  for (const target of targets) {
+    const documentTargets = targetsByDocument.get(target.documentId) ?? new Set<FieldName>();
+    documentTargets.add(target.fieldName);
+    targetsByDocument.set(target.documentId, documentTargets);
+  }
+  const unexpectedDetails = extractions.flatMap((extraction) =>
+    extraction.fields
+      .filter(
+        (field) =>
+          field.field_name !== "document_type" &&
+          field.state !== "unresolved" &&
+          field.normalized_value !== null &&
+          !unscorable.has(field.field_name) &&
+          !targetsByDocument.get(extraction.document_id)?.has(field.field_name),
+      )
+      .map((field) => ({
+        documentId: extraction.document_id,
+        fieldName: field.field_name,
+        predictedValue: field.normalized_value as string | number,
+      })),
+  );
+  const accuracyDenominator = valueDetails.length + unexpectedDetails.length;
 
   return {
     documents: documents.length,
-    field: {
-      targets: details.length,
-      correct,
-      accuracy: ratio(correct, details.length),
-      abstained,
-      abstentionRate: ratio(abstained, details.length),
+    documentType: {
+      targets: documentTypeDetails.length,
+      correct: documentTypeCorrect,
+      accuracy: ratio(documentTypeCorrect, documentTypeDetails.length),
+    },
+    valueFields: {
+      goldTargets: valueDetails.length,
+      correct: valueCorrect,
+      unexpectedPredictions: unexpectedDetails.length,
+      accuracyDenominator,
+      accuracy: ratio(valueCorrect, accuracyDenominator),
+      goldTargetRecall: ratio(valueCorrect, valueDetails.length),
+      abstained: valueAbstained,
+      abstentionRate: ratio(valueAbstained, valueDetails.length),
     },
     box: {
       targets: boxDetails.length,
@@ -197,7 +273,8 @@ export function scoreGoldSet(
       iouAt50,
       iouAt50Rate: ratio(iouAt50, boxDetails.length),
     },
-    unscorableAllowlistedFields: FIELD_ALLOWLIST.filter((field) => !targetedFields.has(field)),
+    unscorableAllowlistedFields,
+    unexpectedDetails,
     details,
   };
 }
@@ -206,15 +283,30 @@ function percentage(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
 }
 
-export function formatGoldMetricsMarkdown(report: GoldMetricsReport): string {
+export interface GoldMetricsProvenance {
+  providerName: string;
+  extractionVersion: string;
+  evaluationSchemaVersion: string;
+}
+
+export function formatGoldMetricsMarkdown(
+  report: GoldMetricsReport,
+  provenance: GoldMetricsProvenance,
+): string {
   return [
     "# RealDoor gold extraction metrics",
     "",
     `Documents: ${report.documents}`,
-    `Field accuracy: ${report.field.correct}/${report.field.targets} (${percentage(report.field.accuracy)})`,
+    `Provider: ${provenance.providerName}`,
+    `Extraction version: ${provenance.extractionVersion}`,
+    `Evaluation schema: ${provenance.evaluationSchemaVersion}`,
+    `Document-type accuracy: ${report.documentType.correct}/${report.documentType.targets} (${percentage(report.documentType.accuracy)})`,
+    `Value-field accuracy: ${report.valueFields.correct}/${report.valueFields.accuracyDenominator} (${percentage(report.valueFields.accuracy)})`,
+    `Gold-target recall: ${report.valueFields.correct}/${report.valueFields.goldTargets} (${percentage(report.valueFields.goldTargetRecall)})`,
     `Mean IoU: ${percentage(report.box.meanIou)}`,
     `IoU ≥ 0.5: ${report.box.iouAt50}/${report.box.targets} (${percentage(report.box.iouAt50Rate)})`,
-    `Abstention rate: ${report.field.abstained}/${report.field.targets} (${percentage(report.field.abstentionRate)})`,
+    `Value-field abstention rate: ${report.valueFields.abstained}/${report.valueFields.goldTargets} (${percentage(report.valueFields.abstentionRate)})`,
+    `Unexpected predictions: ${report.valueFields.unexpectedPredictions}`,
     `Unscorable allowlisted fields: ${report.unscorableAllowlistedFields.join(", ") || "none"}`,
     "",
   ].join("\n");
