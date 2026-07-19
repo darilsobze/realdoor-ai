@@ -1,5 +1,5 @@
 // Hero background media with graceful degradation: video → poster → gradient.
-// Reads /hero.mp4 and /hero-poster.jpg from web/public. If the video is absent
+// Reads /hero.mp4 and /hero-poster.png from web/public. If the video is absent
 // or errors (Vite serves the SPA fallback for a missing file, which fails to
 // decode → onError), we fall back to the poster; if the poster is absent too,
 // a calm gradient in our palette shows. prefers-reduced-motion never plays the
@@ -21,7 +21,7 @@ export function HeroMedia() {
       {/* Poster — hidden if it fails to load, revealing the gradient. */}
       {!posterFailed && (
         <img
-          src="/hero-poster.jpg"
+          src="/hero-poster.png"
           alt=""
           onError={() => setPosterFailed(true)}
           className="absolute inset-0 size-full object-cover"
@@ -32,7 +32,7 @@ export function HeroMedia() {
       {showVideo && (
         <video
           src="/hero.mp4"
-          poster="/hero-poster.jpg"
+          poster="/hero-poster.png"
           muted
           autoPlay
           loop
