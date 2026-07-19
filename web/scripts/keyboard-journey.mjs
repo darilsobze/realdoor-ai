@@ -89,11 +89,9 @@ await page.keyboard.type("3");
 await tabTo(/Confirm household size/, 4);
 await page.keyboard.press("Enter");
 await page.waitForTimeout(400);
-const derivedText = await page.locator('section[aria-labelledby="derived-heading"]').innerText();
-ok("propagation: annualization + comparison + checklist recomputed", /42,120/.test(derivedText) && /under the published limit/.test(derivedText) && /Two recent pay stubs/.test(derivedText));
 
-// 4. ASK — navigate via the app-nav "Understand" tab; verify arrow-key nav +
-// aria-current, then ask via keyboard.
+// 4. ASK + PROPAGATION — navigate to Understand via the app-nav tab (arrow-key
+// + aria-current), where the income/comparison computation-trace cards live.
 const profileTab = page.locator('nav[aria-label="Sections"] a[aria-current="page"]');
 ok("nav: active tab has aria-current=page", (await profileTab.count()) === 1 && /Profile/.test(await profileTab.first().innerText()));
 await profileTab.first().focus();
@@ -102,7 +100,12 @@ const focusedTab = await page.evaluate(() => document.activeElement?.textContent
 ok("nav: ArrowRight moves focus to the next tab", focusedTab === "Understand");
 await page.keyboard.press("Enter");
 await page.waitForURL(/understand/, { timeout: 5000 }).catch(() => {});
-await page.waitForTimeout(400);
+// The income + comparison traces auto-play in sequence (comparison starts
+// after income). Wait for the LATER result (comparison) to settle, then assert
+// the corrected gross pay propagated to both.
+await page.waitForFunction(() => /under the published limit/.test(document.body.innerText), { timeout: 25000 }).catch(() => {});
+const understandText = await page.locator("main").innerText();
+ok("propagation: annualization ($42,120) + comparison recomputed on Understand", /42,120/.test(understandText) && /under the published limit/.test(understandText));
 const qbox = page.locator("#rules-question");
 await qbox.focus();
 await page.keyboard.type("What is the income limit for a 3-person household?");

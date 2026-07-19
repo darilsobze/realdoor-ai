@@ -8,6 +8,7 @@ import {
   type PacketPresentation,
 } from "@/engine";
 import type { PacketAttachment } from "@/engine/packet-pdf";
+import { ChecklistTraceCard } from "@/components/trace-cards";
 import { buildDerived } from "@/lib/calculations";
 import { GOLD_CHECKLIST, requirementTitle } from "@/lib/checklist";
 import { FIELD_META, formatValue } from "@/lib/field-meta";
@@ -179,6 +180,15 @@ export function PacketPage() {
   const sections = buildPacketSections(packet, presentation);
   const pageCount = Math.max(1, ...state.fields.map((field) => field.extracted.page ?? 1));
 
+  // Plain-language summary of which documents the checklist matched.
+  const typeField = state.fields.find(
+    (f) => f.extracted.field_name === "document_type" && f.state === "confirmed",
+  );
+  const typeLabel = typeField ? String(typeField.confirmedValue).replaceAll("_", " ") : "document";
+  const matchedDocs = new Set(derived.checklist.flatMap((r) => r.matched_document_ids)).size;
+  const matchedSummary =
+    matchedDocs > 0 ? `${matchedDocs} ${typeLabel}${matchedDocs === 1 ? "" : "s"} matched` : "No documents matched yet";
+
   async function download() {
     setDownloading(true);
     setMessage("");
@@ -235,6 +245,14 @@ export function PacketPage() {
         <h1 className="text-2xl">Preview your application packet</h1>
         <p className="mt-1 max-w-2xl text-sm text-body">{packet.cover.disclaimer}</p>
       </header>
+
+      <ChecklistTraceCard
+        derived={derived}
+        checklistVersion={GOLD_CHECKLIST.checklist_version}
+        matchedSummary={matchedSummary}
+        profileVersion={state.profileVersion}
+        autoPlay
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 p-5">

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DISCLAIMER_TEXT } from "@/contracts";
+import { IncomeTraceCard, ComparisonTraceCard } from "@/components/trace-cards";
 import { ApiError, askRules, type RulesAskResponse } from "@/lib/api";
 import { buildDerived } from "@/lib/calculations";
 import { APP_SCOPE, SCORED_RULE, ruleById } from "@/lib/rules";
@@ -254,33 +255,24 @@ export function UnderstandPage() {
         {derived.totalIncome === null && derived.wage === null ? (
           <p className="text-sm text-subtle">
             Upload and confirm an income document on the review screen and your
-            annualization and comparison will appear here with their formulas.
+            annualization and comparison will appear here, computed step by step.
           </p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {[derived.wage, derived.benefit, derived.totalIncome, derived.comparison]
-              .filter((c) => c !== null)
-              .map((calc, i) =>
-                calc.status === "computed" ? (
-                  <p key={i} className="tnum rounded-md bg-muted px-3 py-2 text-xs text-body">
-                    {calc.formula}
-                  </p>
-                ) : (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 rounded-md bg-status-info-bg px-3 py-2 text-xs text-body"
-                  >
-                    <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-status-info" />
-                    {calc.explanation}
-                  </div>
-                ),
-              )}
-            <p className="text-xs text-subtle">
-              Formulas run in deterministic code on your confirmed values (profile v
-              {state.profileVersion}) — never in a language model.
-            </p>
+          <div className="grid items-start gap-4 md:grid-cols-2">
+            <IncomeTraceCard derived={derived} profileVersion={state.profileVersion} autoPlay />
+            <ComparisonTraceCard
+              derived={derived}
+              citation={SCORED_RULE.citation}
+              profileVersion={state.profileVersion}
+              autoPlay
+              startDelayMs={2700}
+            />
           </div>
         )}
+        <p className="text-xs text-subtle">
+          Formulas run in deterministic code on your confirmed values (profile v
+          {state.profileVersion}) — never in a language model.
+        </p>
       </section>
     </main>
   );
