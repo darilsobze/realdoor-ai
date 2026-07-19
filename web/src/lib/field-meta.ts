@@ -42,37 +42,6 @@ export const FIELD_META: Record<FieldName, { label: string; helper: string }> = 
   },
 };
 
-/** Outputs recomputed when a field changes — shown before the renter confirms. */
-export const FIELD_DEPENDENTS: Record<FieldName, string[]> = {
-  gross_pay: [
-    "Annualized income",
-    "Income vs. limit comparison",
-    "Checklist: two recent pay stubs",
-    "Application packet",
-  ],
-  pay_frequency: [
-    "Annualized income",
-    "Income vs. limit comparison",
-    "Application packet",
-  ],
-  pay_period_start: ["Checklist: two recent pay stubs", "Application packet"],
-  pay_period_end: ["Checklist: two recent pay stubs", "Application packet"],
-  benefit_amount: [
-    "Annualized income",
-    "Income vs. limit comparison",
-    "Checklist: benefit award letter",
-    "Application packet",
-  ],
-  benefit_frequency: [
-    "Annualized income",
-    "Income vs. limit comparison",
-    "Application packet",
-  ],
-  document_date: ["Checklist: document freshness", "Application packet"],
-  employer_name: ["Application packet"],
-  document_type: ["Checklist: document matching", "Application packet"],
-};
-
 const MONEY_FIELDS: FieldName[] = ["gross_pay", "benefit_amount"];
 const DATE_FIELDS: FieldName[] = ["pay_period_start", "pay_period_end", "document_date"];
 

@@ -63,10 +63,8 @@ export function FieldCard({
     field.extracted.confidence !== null ? Math.round(field.extracted.confidence * 100) : null;
 
   function startEditing() {
-    setDraft(
-      field.correctedValue ??
-        (field.extracted.normalized_value !== null ? String(field.extracted.normalized_value) : ""),
-    );
+    const current = field.confirmedValue ?? field.correctedValue ?? field.extracted.normalized_value;
+    setDraft(current !== null ? String(current) : "");
     setEditing(true);
   }
 
@@ -179,12 +177,10 @@ export function FieldCard({
                 Confirm this value
               </Button>
             )}
-            {!isConfirmed && (
-              <Button size="sm" variant="outline" onClick={startEditing}>
-                <Pencil aria-hidden="true" data-icon="inline-start" />
-                {isAbstained ? "Enter value" : "Correct"}
-              </Button>
-            )}
+            <Button size="sm" variant="outline" onClick={startEditing}>
+              <Pencil aria-hidden="true" data-icon="inline-start" />
+              {isAbstained ? "Enter value" : "Correct"}
+            </Button>
             {hasEvidence && (
               <Button size="sm" variant="ghost" onClick={onShowEvidence} aria-pressed={selected}>
                 <Eye aria-hidden="true" data-icon="inline-start" />
