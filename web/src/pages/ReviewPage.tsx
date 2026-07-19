@@ -12,10 +12,11 @@ import { FieldCard } from "@/components/field-card";
 import { HouseholdSizeCard } from "@/components/household-size-card";
 import {
   AnnualIncomePanel,
-  ChecklistWaitingPanel,
+  ChecklistPanel,
   ComparisonPanel,
   PacketPreviewPanel,
 } from "@/components/derived-panels";
+import { GOLD_CHECKLIST } from "@/lib/checklist";
 import { UncertaintyCenter } from "@/components/uncertainty-center";
 import { WhatWillUpdateDialog, type PendingCorrection } from "@/components/what-will-update";
 import { buildDerived, diffOutputs, withCorrection } from "@/lib/calculations";
@@ -49,8 +50,9 @@ export function ReviewPage() {
     [state.profileVersion, state.lastChangedAt],
   );
   const derived = useMemo(
-    () => buildDerived(state.fields, state.householdSize, SCORED_RULE, context),
-    [state.fields, state.householdSize, context],
+    () =>
+      buildDerived(state.fields, state.householdSize, SCORED_RULE, context, state.document?.id ?? null),
+    [state.fields, state.householdSize, context, state.document?.id],
   );
 
   const evidence: EvidenceTarget | null = useMemo(() => {
@@ -88,6 +90,7 @@ export function ReviewPage() {
       state.householdSize,
       SCORED_RULE,
       context,
+      state.document?.id ?? null,
     );
     return diffOutputs(derived, after);
   }
@@ -117,6 +120,7 @@ export function ReviewPage() {
       { value, confirmedAt: "pending" },
       SCORED_RULE,
       context,
+      state.document?.id ?? null,
     );
     const outputs = diffOutputs(derived, after);
     dispatch({ type: "set_household_size", value, recomputedOutputs: outputs });
@@ -218,7 +222,11 @@ export function ReviewPage() {
             profileVersion={state.profileVersion}
             onJumpToField={jumpToField}
           />
-          <ChecklistWaitingPanel profileVersion={state.profileVersion} />
+          <ChecklistPanel
+            derived={derived}
+            checklistVersion={GOLD_CHECKLIST.checklist_version}
+            profileVersion={state.profileVersion}
+          />
           <PacketPreviewPanel
             fields={state.fields}
             derived={derived}
