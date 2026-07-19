@@ -11,12 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FIELD_DEPENDENTS, FIELD_META, formatValue } from "@/lib/field-meta";
+import { FIELD_META, formatValue } from "@/lib/field-meta";
 import type { ReviewField } from "@/store/review";
 
 export interface PendingCorrection {
   field: ReviewField;
   newValue: string;
+  /** Real recompute list: diff of engine calculation records (not a static map). */
+  recomputedOutputs: string[];
 }
 
 export function WhatWillUpdateDialog({
@@ -34,7 +36,7 @@ export function WhatWillUpdateDialog({
   if (pending) lastFieldId.current = pending.field.extracted.id;
 
   const meta = pending ? FIELD_META[pending.field.extracted.field_name] : null;
-  const dependents = pending ? FIELD_DEPENDENTS[pending.field.extracted.field_name] : [];
+  const dependents = pending?.recomputedOutputs ?? [];
   const oldValue = pending
     ? (pending.field.confirmedValue ??
       pending.field.correctedValue ??

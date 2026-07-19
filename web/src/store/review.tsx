@@ -21,7 +21,6 @@ import {
   type ExtractionResult,
   type FieldState,
 } from "@/contracts";
-import { FIELD_DEPENDENTS } from "@/lib/field-meta";
 
 export interface ReviewField {
   /** The validated extraction output — read-only evidence record. */
@@ -38,8 +37,13 @@ export interface ReviewState {
   sessionId: string | null;
   document: { id: string; displayName: string } | null;
   fields: ReviewField[];
+  /** Renter-stated, never extracted — selects the income-limit table row. */
+  householdSize: { value: number | null; confirmedAt: string | null };
   profileVersion: number;
   changeLog: ChangeLogEntry[];
+  /** Timestamp of the last confirmed change; derived calculations use it as
+   *  computed_at so recomputation is deterministic per profile version. */
+  lastChangedAt: string;
   /** Extracted-field id whose evidence is highlighted in the viewer. */
   selectedId: string | null;
 }
@@ -48,8 +52,10 @@ const initialState: ReviewState = {
   sessionId: null,
   document: null,
   fields: [],
+  householdSize: { value: null, confirmedAt: null },
   profileVersion: 1,
   changeLog: [],
+  lastChangedAt: "",
   selectedId: null,
 };
 
@@ -62,8 +68,11 @@ type Action =
     }
   | { type: "select"; id: string | null }
   /** Explicit renter confirmation. With correctedValue: proposed/unresolved →
-   *  corrected → confirmed; without: proposed → confirmed. */
-  | { type: "confirm"; id: string; correctedValue?: string };
+   *  corrected → confirmed; without: proposed → confirmed. recomputedOutputs
+   *  comes from diffing REAL engine records (lib/calculations.diffOutputs). */
+  | { type: "confirm"; id: string; correctedValue?: string; recomputedOutputs: string[] }
+  /** Renter states household size (attestation, not extraction). */
+  | { type: "set_household_size"; value: number; recomputedOutputs: string[] };
 
 function reducer(state: ReviewState, action: Action): ReviewState {
   switch (action.type) {
@@ -72,6 +81,7 @@ function reducer(state: ReviewState, action: Action): ReviewState {
         ...initialState,
         sessionId: action.sessionId,
         document: action.document,
+        lastChangedAt: new Date().toISOString(),
         fields: action.extraction.fields.map((extracted) => ({
           extracted,
           state: extracted.state,
@@ -91,6 +101,14 @@ function reducer(state: ReviewState, action: Action): ReviewState {
 
       let nextFieldState: FieldState = target.state;
       if (action.correctedValue !== undefined) {
+        if (nextFieldState === "confirmed") {
+          // Correcting an already-confirmed value: the old revision is
+          // superseded (deep guide §11.3) and a new revision runs
+          // proposed → corrected → confirmed. transitionField validates
+          // the supersede is legal before we spawn the new revision.
+          transitionField(nextFieldState, "supersede");
+          nextFieldState = "proposed";
+        }
         nextFieldState = transitionField(nextFieldState, "correct");
       }
       nextFieldState = transitionField(nextFieldState, "confirm");
@@ -101,13 +119,14 @@ function reducer(state: ReviewState, action: Action): ReviewState {
         version: nextVersion,
         timestamp: now,
         changed: [target.extracted.field_name],
-        recomputed_outputs: FIELD_DEPENDENTS[target.extracted.field_name],
+        recomputed_outputs: action.recomputedOutputs,
       };
 
       return {
         ...state,
         profileVersion: nextVersion,
         changeLog: [...state.changeLog, entry],
+        lastChangedAt: now,
         fields: state.fields.map((f) =>
           f.extracted.id === action.id
             ? {
@@ -124,6 +143,25 @@ function reducer(state: ReviewState, action: Action): ReviewState {
               }
             : f,
         ),
+      };
+    }
+    case "set_household_size": {
+      const now = new Date().toISOString();
+      const nextVersion = state.profileVersion + 1;
+      return {
+        ...state,
+        householdSize: { value: action.value, confirmedAt: now },
+        profileVersion: nextVersion,
+        lastChangedAt: now,
+        changeLog: [
+          ...state.changeLog,
+          {
+            version: nextVersion,
+            timestamp: now,
+            changed: ["household_size"],
+            recomputed_outputs: action.recomputedOutputs,
+          },
+        ],
       };
     }
   }
