@@ -2,10 +2,47 @@
 // both tesseract and the evidence-view PNG so bounding boxes always align.
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createCanvas } from "@napi-rs/canvas";
+import {
+  createCanvas,
+  DOMMatrix,
+  ImageData,
+  Path2D,
+  type Canvas,
+  type SKRSContext2D,
+} from "@napi-rs/canvas";
 import Tesseract from "tesseract.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+// PDF.js creates Path2D objects while replaying vector drawing commands. Its
+// optional nested canvas dependency may be a different native-module version
+// from the canvas used below, and native Path2D objects cannot cross versions.
+// Install all PDF.js canvas globals from the same module that creates `ctx`.
+Object.assign(globalThis, { DOMMatrix, ImageData, Path2D });
+
+interface CanvasAndContext {
+  canvas: Canvas;
+  context: SKRSContext2D;
+}
+
+class DirectCanvasFactory {
+  create(width: number, height: number): CanvasAndContext {
+    if (width <= 0 || height <= 0) throw new Error("Canvas dimensions must be positive.");
+    const canvas = createCanvas(width, height);
+    return { canvas, context: canvas.getContext("2d") };
+  }
+
+  reset(target: CanvasAndContext, width: number, height: number): void {
+    if (width <= 0 || height <= 0) throw new Error("Canvas dimensions must be positive.");
+    target.canvas.width = width;
+    target.canvas.height = height;
+  }
+
+  destroy(target: CanvasAndContext): void {
+    target.canvas.width = 0;
+    target.canvas.height = 0;
+  }
+}
 
 /** Render scale: canvas pixels per PDF point. */
 export const RENDER_SCALE = 2.0;
@@ -36,6 +73,7 @@ export async function renderPdfPages(
     pathToFileURL(join(here, "..", "node_modules", "pdfjs-dist", "standard_fonts")).href + "/";
   const pdf = await getDocument({
     data: pdfData,
+    CanvasFactory: DirectCanvasFactory,
     standardFontDataUrl,
     verbosity: 0,
   }).promise;
