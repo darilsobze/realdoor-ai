@@ -5,14 +5,37 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   buildPacket,
   buildPacketSections,
+  type PacketPresentation,
 } from "@/engine";
 import type { PacketAttachment } from "@/engine/packet-pdf";
 import { buildDerived } from "@/lib/calculations";
-import { GOLD_CHECKLIST } from "@/lib/checklist";
-import { FIELD_META } from "@/lib/field-meta";
+import { GOLD_CHECKLIST, requirementTitle } from "@/lib/checklist";
+import { FIELD_META, formatValue } from "@/lib/field-meta";
 import { ruleById, SCORED_RULE } from "@/lib/rules";
 import { useReview, type ReviewField } from "@/store/review";
-import type { Citation, ComputedCalculation, ProfileField } from "@/contracts";
+import type { Citation, ComputedCalculation, FieldName, ProfileField } from "@/contracts";
+
+const CALC_LABELS: Record<string, string> = {
+  annualized_income: "Annual income",
+  income_sum: "Total annual income",
+  threshold_comparison: "Compared with the published limit",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  confirmed: "Confirmed",
+  needs_confirmation: "Needs confirmation",
+  missing: "Missing",
+  expired: "Expired",
+  conflicting: "Conflicting",
+  not_applicable: "Not applicable",
+};
+
+function formatPacketDate(value: string): string {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? value
+    : d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
 
 function toProfileField(field: ReviewField): ProfileField {
   return {
@@ -126,7 +149,7 @@ export function PacketPage() {
       .map((field) => `${FIELD_META[field.extracted.field_name].label}: confirmation needed`),
     ...derived.checklist
       .filter((item) => item.status !== "confirmed" && item.status !== "not_applicable")
-      .map((item) => `${item.requirement_id}: ${item.status}`),
+      .map((item) => `${requirementTitle(item.requirement_id)}: ${STATUS_LABELS[item.status] ?? item.status}`),
   ];
   const selectedDocumentIds = includeDocument ? [state.document.id] : [];
   const packet = buildPacket({
@@ -141,7 +164,19 @@ export function PacketPage() {
     selectedDocumentIds,
     unresolvedItems,
   });
-  const sections = buildPacketSections(packet);
+  // Display lookups the packet renders through — keeps the engine UI-free while
+  // the preview AND the PDF share one presentation, so they stay identical.
+  const docNames = new Map(state.document ? [[state.document.id, state.document.displayName]] : []);
+  const presentation: Partial<PacketPresentation> = {
+    fieldLabel: (name) => FIELD_META[name as FieldName]?.label ?? name,
+    formatValue: (name, value) => formatValue(name as FieldName, value),
+    documentName: (id) => docNames.get(id) ?? id,
+    requirementTitle,
+    statusLabel: (status) => STATUS_LABELS[status] ?? status,
+    calculationLabel: (type) => CALC_LABELS[type] ?? type,
+    formatDate: formatPacketDate,
+  };
+  const sections = buildPacketSections(packet, presentation);
   const pageCount = Math.max(1, ...state.fields.map((field) => field.extracted.page ?? 1));
 
   async function download() {
@@ -177,7 +212,7 @@ export function PacketPage() {
         ];
       }
       const { renderPacketPdf } = await import("@/engine/packet-pdf");
-      const bytes = await renderPacketPdf(packet, normalizedAttachments);
+      const bytes = await renderPacketPdf(packet, normalizedAttachments, presentation);
       const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       const url = URL.createObjectURL(new Blob([buffer], { type: "application/pdf" }));
       const anchor = document.createElement("a");

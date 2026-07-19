@@ -102,16 +102,37 @@ describe("packet assembly and parity", () => {
     );
   });
 
-  it("includes evidence, formulas, citations, checklist, unresolved items, and manifest values", () => {
+  it("includes evidence, formulas, citations, checklist, unresolved items, and manifest values (raw default)", () => {
     const sections = buildPacketSections(packet());
     const text = sections.flatMap((section) => section.lines).join("\n");
-    expect(text).toContain("DOC-1, page 1, box 10,20,30,12");
+    expect(text).toContain("from DOC-1, page 1");
     expect(text).toContain(calculation.formula);
     expect(text).toContain(citation.official_source);
     expect(text).toContain(citation.effective_date);
-    expect(text).toContain("pay_stubs_recent - needs_confirmation");
+    expect(text).toContain("pay_stubs_recent — needs_confirmation");
     expect(text).toContain("pay_frequency needs confirmation");
     expect(text).toContain("Included documents: DOC-1");
+  });
+
+  it("applies the presentation map to labels, values, document names, statuses, and dates", () => {
+    const sections = buildPacketSections(packet(), {
+      fieldLabel: (n) => (n === "gross_pay" ? "Gross pay" : n),
+      formatValue: (_n, v) => `$${Number(v).toLocaleString("en-US")}.00`,
+      documentName: (id) => (id === "DOC-1" ? "stub_clean.pdf" : id),
+      requirementTitle: (id) => (id === "pay_stubs_recent" ? "Two recent pay stubs" : id),
+      statusLabel: (s) => (s === "needs_confirmation" ? "Needs confirmation" : s),
+      calculationLabel: (t) => (t === "annualized_income" ? "Annual income" : t),
+      formatDate: (d) => (d === "2026-05-01" ? "May 1, 2026" : d),
+    });
+    const text = sections.flatMap((section) => section.lines).join("\n");
+    expect(text).toContain("Gross pay: $1,580.00 — from stub_clean.pdf, page 1");
+    expect(text).toContain("Annual income: 1580.00 USD/biweekly");
+    expect(text).toContain("Two recent pay stubs — Needs confirmation:");
+    expect(text).toContain("effective May 1, 2026");
+    expect(text).toContain("Included documents: stub_clean.pdf");
+    // raw ids/statuses must NOT leak when a presentation is provided
+    expect(text).not.toContain("pay_stubs_recent");
+    expect(text).not.toContain("needs_confirmation");
   });
 });
 

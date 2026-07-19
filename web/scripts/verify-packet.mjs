@@ -72,17 +72,21 @@ for (let i = 1; i <= numPages; i++) {
 await pdf.destroy();
 
 const problems = [];
-// sections present in BOTH, and in manifest order in the PDF
-let cursor = -1;
-for (const s of SECTIONS) {
+// Cover is rendered as a cover page (no "Cover" heading) — verify by content.
+if (!/not an eligibility decision/i.test(pdfText)) problems.push("pdf cover missing disclaimer");
+// The 5 content-section headers must appear in manifest order in the PDF.
+// Advance a cursor so each header is found at/after the previous one; the
+// manifest's "Sections:" recap lists them too but comes last, so real headers win.
+const CONTENT = SECTIONS.filter((s) => s !== "Cover");
+let cursor = 0;
+for (const s of CONTENT) {
   if (!previewText.includes(s)) problems.push(`preview missing section: ${s}`);
-  const at = pdfText.indexOf(s);
-  if (at === -1) problems.push(`pdf missing section: ${s}`);
-  else if (at < cursor) problems.push(`pdf section out of manifest order: ${s}`);
-  else cursor = at;
+  const at = pdfText.indexOf(s, cursor);
+  if (at === -1) problems.push(`pdf section out of order or missing: ${s}`);
+  else cursor = at + s.length;
 }
-// same key values in both
-const mustContain = ["1580", "41080.00", "92580.00", "not an eligibility decision", "pay_stubs_recent"];
+// same key values in both — now humanized (labels, formatted values, titles)
+const mustContain = ["Gross pay", "$1,580.00", "41080.00", "92580.00", "not an eligibility decision", "Two recent pay stubs"];
 for (const v of mustContain) {
   if (!previewText.toLowerCase().includes(v.toLowerCase())) problems.push(`preview missing value: ${v}`);
   if (!pdfText.toLowerCase().includes(v.toLowerCase())) problems.push(`pdf missing value: ${v}`);

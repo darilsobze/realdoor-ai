@@ -1,12 +1,19 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Packet } from "../contracts";
-import { buildPacketSections } from "./packet";
+import { buildPacketSections, type PacketPresentation, type PacketSection } from "./packet";
 
 const PAGE_WIDTH = 612;
 const PAGE_HEIGHT = 792;
 const MARGIN = 54;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const BODY_SIZE = 10;
 const LINE_HEIGHT = 15;
+
+const INK = rgb(0.1, 0.11, 0.14); // #1A1D23-ish
+const BODY = rgb(0.25, 0.27, 0.31); // #3F4450-ish
+const SUBTLE = rgb(0.42, 0.44, 0.5); // #6B7180-ish
+const RULE = rgb(0.91, 0.9, 0.88); // #E7E5E1
+const PRIMARY = rgb(0.11, 0.31, 0.85); // #1D4ED8
 
 export interface PacketAttachment {
   documentId: string;
@@ -25,13 +32,13 @@ function pdfSafe(value: string): string {
     .replace(/[‘’]/g, "'");
 }
 
-function wrapLine(text: string, font: PDFFont, maxWidth: number): string[] {
+function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = pdfSafe(text).split(/\s+/);
   const lines: string[] = [];
   let line = "";
   for (const word of words) {
     const candidate = line ? `${line} ${word}` : word;
-    if (font.widthOfTextAtSize(candidate, BODY_SIZE) <= maxWidth) {
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
       line = candidate;
     } else {
       if (line) lines.push(line);
@@ -42,43 +49,94 @@ function wrapLine(text: string, font: PDFFont, maxWidth: number): string[] {
   return lines.length > 0 ? lines : [""];
 }
 
-function drawHeader(page: PDFPage, title: string, font: PDFFont): number {
-  page.drawText(pdfSafe(title), {
-    x: MARGIN,
-    y: PAGE_HEIGHT - MARGIN,
-    size: 18,
-    font,
-    color: rgb(0.08, 0.16, 0.25),
+function drawSectionHeader(page: PDFPage, title: string, bold: PDFFont): number {
+  const top = PAGE_HEIGHT - MARGIN;
+  page.drawText(pdfSafe(title), { x: MARGIN, y: top, size: 15, font: bold, color: INK });
+  page.drawLine({
+    start: { x: MARGIN, y: top - 10 },
+    end: { x: PAGE_WIDTH - MARGIN, y: top - 10 },
+    thickness: 1,
+    color: RULE,
   });
-  return PAGE_HEIGHT - MARGIN - 30;
+  return top - 30;
 }
 
-function drawLines(
-  document: PDFDocument,
-  initialPage: PDFPage,
+/**
+ * A "Label: value" line renders as a bold label + regular value with a hanging
+ * indent; anything else is a plain wrapped paragraph. This is what gives the
+ * confirmed-values and manifest lists their print-quality look.
+ */
+function drawEntry(
+  doc: PDFDocument,
+  page: PDFPage,
   title: string,
-  lines: string[],
+  y: number,
+  raw: string,
+  regular: PDFFont,
+  bold: PDFFont,
+): { page: PDFPage; y: number } {
+  const ensure = (cur: PDFPage, curY: number): { page: PDFPage; y: number } => {
+    if (curY >= MARGIN + LINE_HEIGHT) return { page: cur, y: curY };
+    const next = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    return { page: next, y: drawSectionHeader(next, `${title} (continued)`, bold) };
+  };
+
+  const match = /^([^:]{1,42}): ([\s\S]+)$/.exec(raw);
+  if (match) {
+    const label = `${match[1]}:`;
+    const labelWidth = bold.widthOfTextAtSize(pdfSafe(label), BODY_SIZE) + 5;
+    const valueLines = wrap(match[2], regular, BODY_SIZE, CONTENT_WIDTH - labelWidth);
+    valueLines.forEach((vl, i) => {
+      ({ page, y } = ensure(page, y));
+      if (i === 0) {
+        page.drawText(pdfSafe(label), { x: MARGIN, y, size: BODY_SIZE, font: bold, color: INK });
+      }
+      page.drawText(vl, { x: MARGIN + labelWidth, y, size: BODY_SIZE, font: regular, color: BODY });
+      y -= LINE_HEIGHT;
+    });
+  } else {
+    for (const line of wrap(raw, regular, BODY_SIZE, CONTENT_WIDTH)) {
+      ({ page, y } = ensure(page, y));
+      page.drawText(line, { x: MARGIN, y, size: BODY_SIZE, font: regular, color: BODY });
+      y -= LINE_HEIGHT;
+    }
+  }
+  return { page, y: y - 6 };
+}
+
+function drawSection(
+  doc: PDFDocument,
+  section: PacketSection,
   regular: PDFFont,
   bold: PDFFont,
 ): void {
-  let page = initialPage;
-  let y = drawHeader(page, title, bold);
-  for (const rawLine of lines) {
-    for (const line of wrapLine(rawLine, regular, PAGE_WIDTH - MARGIN * 2)) {
-      if (y < MARGIN) {
-        page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-        y = drawHeader(page, `${title} (continued)`, bold);
-      }
-      page.drawText(line, {
-        x: MARGIN,
-        y,
-        size: BODY_SIZE,
-        font: regular,
-        color: rgb(0.13, 0.18, 0.23),
-      });
-      y -= LINE_HEIGHT;
-    }
-    y -= 5;
+  let page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let y = drawSectionHeader(page, section.name, bold);
+  for (const line of section.lines) {
+    ({ page, y } = drawEntry(doc, page, section.name, y, line, regular, bold));
+  }
+}
+
+/** A real cover page: eyebrow, big title, prepared date, disclaimer. */
+function drawCover(doc: PDFDocument, section: PacketSection, regular: PDFFont, bold: PDFFont): void {
+  const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  const [title, prepared, disclaimer] = section.lines;
+  let y = PAGE_HEIGHT - 150;
+
+  page.drawText("APPLICATION READINESS PACKET", { x: MARGIN, y, size: 10, font: bold, color: PRIMARY });
+  y -= 40;
+  for (const line of wrap(title ?? "", bold, 26, CONTENT_WIDTH)) {
+    page.drawText(line, { x: MARGIN, y, size: 26, font: bold, color: INK });
+    y -= 32;
+  }
+  y -= 6;
+  page.drawText(pdfSafe(prepared ?? ""), { x: MARGIN, y, size: 11, font: regular, color: SUBTLE });
+  y -= 40;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_WIDTH - MARGIN, y }, thickness: 1, color: RULE });
+  y -= 28;
+  for (const line of wrap(disclaimer ?? "", regular, 11, CONTENT_WIDTH)) {
+    page.drawText(line, { x: MARGIN, y, size: 11, font: regular, color: BODY });
+    y -= 17;
   }
 }
 
@@ -112,6 +170,7 @@ async function appendAttachment(output: PDFDocument, attachment: PacketAttachmen
 export async function renderPacketPdf(
   packet: Packet,
   attachments: PacketAttachment[],
+  presentation?: Partial<PacketPresentation>,
 ): Promise<Uint8Array> {
   const selectedIds = packet.manifest.included_document_ids;
   const suppliedIds = attachments.map((attachment) => attachment.documentId);
@@ -130,9 +189,9 @@ export async function renderPacketPdf(
   const regular = await output.embedFont(StandardFonts.Helvetica);
   const bold = await output.embedFont(StandardFonts.HelveticaBold);
 
-  for (const section of buildPacketSections(packet)) {
-    const page = output.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-    drawLines(output, page, section.name, section.lines, regular, bold);
+  for (const section of buildPacketSections(packet, presentation)) {
+    if (section.name === "Cover") drawCover(output, section, regular, bold);
+    else drawSection(output, section, regular, bold);
   }
 
   for (const attachment of attachments) await appendAttachment(output, attachment);
