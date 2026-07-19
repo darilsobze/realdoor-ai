@@ -4,7 +4,7 @@
 // C4 — every derived value (annualization, comparison, checklist, packet
 // preview) recomputed from the single confirmed-profile store on any change.
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BookOpenCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DocumentViewer, type EvidenceTarget } from "@/components/document-viewer";
@@ -153,10 +153,16 @@ export function ReviewPage() {
             Every value shows where it came from. Nothing counts until you confirm it.
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/")}>
-          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-          Upload another document
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => (window.location.hash = "#/understand")}>
+            <BookOpenCheck aria-hidden="true" data-icon="inline-start" />
+            Understand the rules
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/")}>
+            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+            Upload another document
+          </Button>
+        </div>
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">

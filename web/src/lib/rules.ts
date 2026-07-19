@@ -16,3 +16,16 @@ export const SCORED_RULE: Rule = (() => {
   }
   return rule;
 })();
+
+/** The app's single supported scope (one metro, one program, one rule year —
+ *  ARCHITECTURE "known limitations"). Sent as confirmedContext on /rules/ask
+ *  so metro-sensitive questions resolve instead of abstaining. */
+export const APP_SCOPE = {
+  program_id: "LIHTC",
+  metro_id: "boston_cambridge_quincy_ma_nh_hmfa",
+  rule_year: 2026,
+} as const;
+
+export function ruleById(ruleId: string): Rule | null {
+  return RULES.rules.find((r) => r.rule_id === ruleId) ?? null;
+}

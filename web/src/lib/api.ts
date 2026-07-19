@@ -55,3 +55,37 @@ export async function extractDocument(
 export function pageUrl(sessionId: string, documentId: string, page: number): string {
   return `/api/session/${sessionId}/documents/${documentId}/page/${page}`;
 }
+
+/** Response shape of POST /rules/ask (docs/api.md). */
+export interface RulesAskResponse {
+  answer: string;
+  citation: {
+    rule_id: string;
+    authority: "official_hud" | "official_federal" | "hackathon_simulation";
+    program_id: string;
+    metro_id: string;
+    rule_year: number;
+    rule_version: string;
+    effective_date: string;
+    official_source: string;
+    page: number | string | null;
+    section: string | null;
+    table_id: string | null;
+  } | null;
+  abstained: boolean;
+  refusal: boolean;
+}
+
+export async function askRules(
+  question: string,
+  confirmedContext: { program_id?: string; metro_id?: string; rule_year?: number },
+): Promise<RulesAskResponse> {
+  const body = await parseJson(
+    await fetch("/api/rules/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, confirmedContext }),
+    }),
+  );
+  return body as RulesAskResponse;
+}

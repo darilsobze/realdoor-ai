@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { StyleGuide } from "@/ui/StyleGuide";
+import { UnderstandPage } from "@/ui/UnderstandPage";
 import { UploadPage } from "@/pages/UploadPage";
 import { ReviewPage } from "@/pages/ReviewPage";
 import { ReviewProvider } from "@/store/review";
@@ -21,6 +22,7 @@ export default function App() {
   let screen;
   if (hash === "#/style-guide") screen = <StyleGuide />;
   else if (hash === "#/review") screen = <ReviewPage />;
+  else if (hash === "#/understand") screen = <UnderstandPage />;
   else screen = <UploadPage />;
 
   return (
