@@ -6,7 +6,8 @@
 // shows the real citation objects). After completion the steps collapse to a
 // "Thought for Xs" disclosure so cards stay compact.
 import { useEffect, useRef, useState } from "react";
-import { Brain, Check, ChevronDown, RotateCw, ShieldCheck, SquareArrowOutUpRight, type LucideIcon } from "lucide-react";
+import { Brain, Check, ChevronDown, Play, RotateCw, ShieldCheck, SquareArrowOutUpRight, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/lib/motion";
@@ -100,6 +101,8 @@ export function ComputationTrace({
   announce,
   startDelayMs = 0,
   replayLabel = "Replay",
+  startLabel,
+  idlePrompt,
 }: {
   traceKey: string;
   icon: LucideIcon;
@@ -112,13 +115,21 @@ export function ComputationTrace({
   announce: string;
   startDelayMs?: number;
   replayLabel?: string;
+  /** When set, the trace waits behind this button instead of auto-playing. */
+  startLabel?: string;
+  idlePrompt?: string;
 }) {
   const reduced = usePrefersReducedMotion();
-  const shouldAnimate = autoPlay && !reduced && !played.has(traceKey);
-  const [animating, setAnimating] = useState(shouldAnimate);
-  const [armed, setArmed] = useState(!shouldAnimate || startDelayMs === 0);
-  const [activeStep, setActiveStep] = useState(shouldAnimate ? 0 : steps.length);
-  const [playMode, setPlayMode] = useState(shouldAnimate);
+  // Manual mode: wait behind a Calculate/Compare button until the renter runs it.
+  const manualIdle = !!startLabel && !played.has(traceKey);
+  const autoAnimate = !manualIdle && autoPlay && !reduced && !played.has(traceKey);
+
+  const [phase, setPhase] = useState<"idle" | "animating" | "done">(
+    manualIdle ? "idle" : autoAnimate ? "animating" : "done",
+  );
+  const [armed, setArmed] = useState(!autoAnimate || startDelayMs === 0);
+  const [activeStep, setActiveStep] = useState(autoAnimate ? 0 : steps.length);
+  const [playMode, setPlayMode] = useState(autoAnimate);
   const [runId, setRunId] = useState(0);
   const [live, setLive] = useState("");
   const stepCount = useRef(steps.length);
@@ -131,25 +142,37 @@ export function ComputationTrace({
   }, [armed, startDelayMs]);
 
   useEffect(() => {
-    if (!animating || !armed) return;
+    if (phase !== "animating" || !armed) return;
     played.add(traceKey);
     if (activeStep >= stepCount.current) {
-      setAnimating(false);
+      setPhase("done");
       setRunId((r) => r + 1);
       setLive(announce);
       return;
     }
     const t = setTimeout(() => setActiveStep((s) => s + 1), STEP_MS);
     return () => clearTimeout(t);
-  }, [animating, armed, activeStep, traceKey, announce]);
+  }, [phase, armed, activeStep, traceKey, announce]);
 
-  const done = !animating;
+  const idle = phase === "idle";
+  const animating = phase === "animating";
+  const done = phase === "done";
   const animatedRun = playMode && runId > 0;
-  function replay() {
+
+  function run() {
+    played.add(traceKey);
     setPlayMode(true);
     setArmed(true);
-    setActiveStep(0);
-    setAnimating(true);
+    setShowSteps(false);
+    if (reduced) {
+      setActiveStep(steps.length);
+      setRunId((r) => r + 1);
+      setLive(announce);
+      setPhase("done");
+    } else {
+      setActiveStep(0);
+      setPhase("animating");
+    }
   }
 
   const [showSteps, setShowSteps] = useState(false);
@@ -167,7 +190,7 @@ export function ComputationTrace({
           {done && (
             <button
               type="button"
-              onClick={() => { setShowSteps(false); replay(); }}
+              onClick={run}
               className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-subtle hover:text-primary"
             >
               <RotateCw aria-hidden="true" className="size-3" />
@@ -175,6 +198,17 @@ export function ComputationTrace({
             </button>
           )}
         </div>
+
+        {/* Idle (manual mode): wait behind the Calculate/Compare button. */}
+        {idle && (
+          <div className="flex flex-col items-start gap-3">
+            {idlePrompt && <p className="text-sm text-subtle">{idlePrompt}</p>}
+            <Button size="sm" onClick={run}>
+              <Play aria-hidden="true" data-icon="inline-start" />
+              {startLabel}
+            </Button>
+          </div>
+        )}
 
         {/* Live steps during the animation. */}
         {animating && <TraceStepList steps={steps} activeStep={activeStep} armed={armed} done={false} />}
