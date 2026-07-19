@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "evaluate:gold": "tsx scripts/evaluate-gold.ts",
     "start": "tsx src/index.ts",
     "prove": "tsx scripts/prove-extraction.ts",
     "test": "vitest run",
