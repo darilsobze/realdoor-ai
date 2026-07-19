@@ -1,41 +1,35 @@
-# TEAM_PLAN.md — RealDoor, 3-person split (Daril · Hoan · Emmanuel)
+# TEAM_PLAN.md — RealDoor (Daril · Hoan; Emmanuel departed 2026-07-19)
 
 > Commit this file to the repo root. The conflict-prevention rule is simple: **you only edit directories you own.** Cross-boundary changes go through the owner. Contracts are frozen (see below).
 
 ## Where the project stands (updated 2026-07-19)
 Done: Phase 4 (contracts, tokens, data, fixtures) → C2 backend → C3 review UI → C4 engine + propagation → C5 checklist + packet (tagged `vertical-slice`) → C6 rules Q&A + Understand screen → **C7 Safety Test Panel (5 live proofs)**. Vector-PDF rendering fix merged (organizer gold PDFs extract). The full demo journey (steps 1–6) works end to end. main at 081686b.
-Next up: Hoan — C7 server tests + /rules/ask scope-default + 24-doc gold-set numbers. Emmanuel — packet confirmed-values polish → **C8 accessibility** (all screens now exist; app-wide focus ring fixed). Then C9 — metrics + risk-note + demo rehearsal.
+Next up: Hoan — C7 server tests + /rules/ask scope-default + 24-doc gold-set numbers. Daril — packet confirmed-values polish → **C8 accessibility** (all screens exist; app-wide focus ring fixed) → C9 (metrics + risk-note + demo rehearsal, as demo lead).
 Known bug (logged in TODO): extraction over-abstains on clean stubs (document_type token-matched wrongly; date normalization too strict). Must be fixed before C4.
 
 ## Roles and ownership
+> 2026-07-19: Emmanuel departed. Team is now 2 people — Daril (all frontend + product/docs/quality) and Hoan (backend). Daril absorbed Emmanuel's fences.
 
-### Daril — Integration lead & frontend core (owns: `web/src/ui`, `web/src/store`, CLAUDE.md, TODO.md, MERGES)
-The only person who merges to main and the only person who edits CLAUDE.md/TODO.md (others request changes via PR comment). Keeps the Claude Code session that has full history.
-- C3: upload + field-review UI (evidence highlights, confirm/correct, version toast) — DONE
-- C4: confirmedProfile store, propagation, "what will update" preview — DONE
-- C7 UI half (taken over from Emmanuel, 2026-07-19): the Safety Test Panel page — five live proofs (refusal, injection via document + filename, unconfirmed-reuse block, deletion + cross-session rejection) — DONE (#/safety, merged 081686b); also fixed the app-wide keyboard focus ring
-- Merge every PR same-day; resolve any conflict with the branch owner present
-- Owns the GitHub repo settings and the demo machine
+### Daril — Integration lead, frontend + product (owns: `web/src/ui`, `web/src/store`, `web/src/pages`, `web/src/components`, and — absorbed from Emmanuel — `web/src/engine`, checklist/packet UI, `docs/`, `data/checklist/`; plus CLAUDE.md, TODO.md, MERGES, demo)
+The only person who merges to main and the only person who edits CLAUDE.md/TODO.md. Keeps the Claude Code session that has full history.
+- C3 review UI, C4 propagation, C6 Understand screen, C7 consent notice + Safety Test Panel — DONE; also fixed the app-wide keyboard focus ring
+- Absorbed from Emmanuel: packet confirmed-values polish → C8 accessibility → C9 (metrics page, risk-note, demo-script verification) as demo lead
+- Merge every PR same-day; owns GitHub repo settings and the demo machine
 
 ### Hoan — Backend, extraction & rules (owns: `server/`, `data/rules/`)
 Runs their own Claude Code sessions scoped to server work ("work only inside server/ and data/rules/; read CLAUDE.md and docs/api.md first").
 - FIRST TASK (unblocks C4): fix the over-abstention bug — document_type gets a classification path (no token match), multi-token date matching, regression test asserting ≥6 proposed on stub_clean. Small PR, fast merge.
 - C6: /rules + /rules/ask endpoints — full frozen corpus in context, citations with effective date (or corpus freeze date when null), abstain out-of-corpus, eligibility refusal
 - C7 server half: injection tests (document + filename), cross-session rejection test, audit-log hygiene, deletion proof endpoint behavior
-- Runs extraction against the organizer's 24 gold docs and reports accuracy/abstention numbers to Emmanuel's metrics page
+- Runs extraction against the organizer's 24 gold docs and reports accuracy/abstention numbers to Daril for the metrics page
 
-### Emmanuel — Product, checklist/packet & quality (owns: `web/src/engine`, checklist/packet UI routes, `docs/`, `data/checklist/`)
-Runs their own Claude Code sessions scoped accordingly.
-- C5: checklist engine vs gold.json (pure + tested; unconfirmed date → needs_confirmation, never expired) and the packet preview/download. Includes the queued decision: pick which organizer requirements demonstrate "Missing" and "Expired" with our fixtures, test it, update docs/demo-script.md — DONE (merged)
-- ~~C7 UI half: the Safety Test Panel page~~ REASSIGNED to Daril (2026-07-19): Emmanuel goes straight to C8 prep + packet polish; the safety-panel route lives in Daril's fence (web/src/ui) for this task
-- C8: accessibility pass — Playwright keyboard journey, axe-core, aria-live, zoom; plus one manual keyboard-only run
-- C9: metrics page, risk-note finalization, demo-script verification; owns the pitch deck and the 6-minute rehearsal as demo lead
-- Lovable prototype iteration for layout ideas (screenshots → to Daril, never code)
+### Emmanuel — DEPARTED 2026-07-19
+Delivered and merged: C5 engine (annualize/sum/compare), C5 checklist engine, C5 packet builder + PDF. All remaining work (packet polish, C8 accessibility, C9 metrics/risk-note/demo) and all owned directories moved to Daril.
 
 ## The three shared surfaces (where conflicts would happen) and their rules
-1. **`web/src/contracts/` is FROZEN.** Any schema change needs a 3-person OK in the group chat before the PR. This is the interface everyone builds against; silent changes here are how integration breaks.
-2. **`docs/api.md` is the server contract.** Hoan updates it in the same PR as any endpoint change; Daril and Emmanuel build against the file, not against assumptions.
-3. **CLAUDE.md / TODO.md**: Daril-only edits. Others put "TODO requests" in PR descriptions.
+1. **`web/src/contracts/` is FROZEN.** Any schema change needs both Daril and Hoan to agree before the PR (was 3-person; now 2). This is the interface both sides build against; silent changes here are how integration breaks.
+2. **`docs/api.md` is the server contract.** Hoan updates it in the same PR as any endpoint change; Daril builds against the file, not against assumptions.
+3. **CLAUDE.md / TODO.md**: Daril-only edits. Hoan puts "TODO requests" in PR descriptions.
 
 ## Git workflow (simple on purpose)
 - main is always runnable; nobody commits to main directly except Daril's merges.
@@ -46,25 +40,18 @@ Runs their own Claude Code sessions scoped accordingly.
 - Push at every milestone; the remote is the backup.
 
 ## Dependency order (who blocks whom)
-```
-NOW (parallel):   Daril C3 UI      Hoan bug-fix → C6 rules     Emmanuel C5 engine+checklist (pure code, no UI deps)
-THEN:             Daril C4 propagation  (needs: Hoan's bug fix merged + Emmanuel's engine functions)
-THEN (parallel):  Emmanuel C5 packet UI + C7 panel    Hoan C7 server tests
-THEN:             Emmanuel C8 accessibility (needs all screens to exist)
-FINALLY:          C9 together — Emmanuel drives metrics/demo, Hoan supplies gold-set numbers, Daril fixes what rehearsal finds
-```
-The only hard sync point is C4: Hoan's fix and Emmanuel's engine functions must merge before Daril wires propagation. Target: both merged within the first working session.
+The original 3-person C1–C7 dependency chain is complete (see git history / TODO "Where we are"). Remaining work is a simple 2-person split with no hard cross-dependencies except: Hoan's 24-doc gold-set numbers feed Daril's C9 metrics page.
 
-## Claude Code for three people
-Each person runs Claude Code in their own clone/branch. Start every session with: "Read CLAUDE.md, ARCHITECTURE.md, TODO.md and docs/api.md. You are working ONLY inside <owned directories> on branch <name>. Do not modify contracts, CLAUDE.md, or TODO.md." The ownership fence in the prompt is what keeps three agents from trampling each other.
+## Claude Code for two people
+Each person runs Claude Code in their own clone/branch. Start every session with the ownership-fenced prompt below. The fence is what keeps the two agents from trampling each other.
 
 ## Session opening prompts
 
 ### Hoan — paste this to start every Claude Code session
-> Read CLAUDE.md, ARCHITECTURE.md, TODO.md, and docs/api.md fully before doing anything. I am Hoan. You work ONLY inside `server/` and `data/rules/`, on my branch (prefix `hoan/`, e.g. `hoan/fix-abstention` — create it from latest main if it doesn't exist). Never modify `web/src/contracts/` (frozen), CLAUDE.md, or TODO.md; if an endpoint changes, update docs/api.md in the same PR. Never touch web/ or docs/ beyond api.md. The OpenAI key lives in server/.env only — never print it, never commit it. Start with my first task from the "Hoan" section of TODO.md: fix the extraction over-abstention bug (document_type classification path, multi-token date matching, regression test asserting ≥6 proposed fields on stub_clean.pdf). Plan first, keep the PR small, run `npm test` and `npm run prove` in server/ before declaring done, and end with a one-line "how I verified".
+> Read CLAUDE.md, ARCHITECTURE.md, TODO.md, and docs/api.md fully before doing anything. I am Hoan. You work ONLY inside `server/` and `data/rules/`, on my branch (prefix `hoan/`, created from latest main). Never modify `web/src/contracts/` (frozen — needs Daril's agreement), CLAUDE.md, or TODO.md; if an endpoint changes, update docs/api.md in the same PR. Never touch web/ or docs/ beyond api.md. The OpenAI key lives in server/.env only — never print it, never commit it. Start with my current tasks from the "Hoan" section of TODO.md (C7 server tests: injection via document + filename, cross-session rejection, audit hygiene, deletion proof; /rules/ask scope-default; 24-doc gold-set accuracy numbers for Daril's metrics page). Plan first, keep PRs small, run `npm test` and `npm run prove` in server/ before declaring done, and end with a one-line "how I verified".
 
-### Emmanuel — paste this to start every Claude Code session
-> Read CLAUDE.md, ARCHITECTURE.md, TODO.md, and docs/api.md fully before doing anything. I am Emmanuel. You work ONLY inside `web/src/engine/`, the checklist/packet UI routes, `docs/`, and `data/checklist/`, on my branch (prefix `emmanuel/`, e.g. `emmanuel/c5-engine` — create it from latest main if it doesn't exist). Never modify `web/src/contracts/` (frozen), CLAUDE.md, TODO.md, or anything in server/, web/src/ui, web/src/store, web/src/pages. The engine is pure deterministic code: no LLM calls, no eligibility language, no scores; blocked results instead of guessing. Start with my first task from the "Emmanuel" section of TODO.md: the C5 engine functions (annualize, sumIncomeSources, compareToThreshold) with Vitest tests for every formula including blocked cases. Plan first, run `npm test` in web/ before declaring done, and end with a one-line "how I verified".
+### Daril — this session (integration lead, absorbed Emmanuel's fences)
+> Own everything in web/ except `web/src/contracts` (frozen) plus `docs/` and `data/checklist/`; sole editor of CLAUDE.md/TODO.md and sole merger. Remaining: packet polish → C8 accessibility → C9 (metrics/risk-note/demo lead). Pull before each task, push after; review + merge Hoan's PRs on the demo machine.
 
 ## Daily rhythm (hackathon-scaled)
 Two 5-minute syncs per day: (1) what merged, (2) what's blocked, (3) any contract-change requests. Everything else async in the group chat with PR links.
