@@ -27,6 +27,78 @@ describe("RulesLlmOutputSchema", () => {
 });
 
 describe("askRulesQuestion", () => {
+  it("defaults missing context to the app's single supported scope", async () => {
+    const provider = fakeProvider({
+      answer: "The 3-person 60% threshold is $92,580.",
+      rule_id: "HUD-MTSP-002",
+      abstained: false,
+      requested_program_id: null,
+      requested_metro_id: null,
+      requested_rule_year: null,
+    });
+
+    const result = await askRulesQuestion(
+      "What is the income limit for a 3-person household?",
+      undefined,
+      provider,
+    );
+
+    expect(result).toMatchObject({
+      abstained: false,
+      citation: {
+        program_id: "LIHTC",
+        metro_id: "boston_cambridge_quincy_ma_nh_hmfa",
+        rule_year: 2026,
+      },
+    });
+  });
+
+  it.each([
+    "What is the Section 8 income limit?",
+    "For Chicago, what is the income limit?",
+    "Compare LIHTC and Section 8 limits.",
+    "Compare Boston and Chicago limits.",
+    "Boston vs Chicago limits.",
+    "Compare Boston limits for 2026 and 2025.",
+  ])("does not let defaults override explicit unsupported question scope: %s", async (question) => {
+    const provider = fakeProvider({
+      answer: "A Boston LIHTC threshold.",
+      rule_id: "HUD-MTSP-002",
+      abstained: false,
+      requested_program_id: null,
+      requested_metro_id: null,
+      requested_rule_year: null,
+    });
+
+    const result = await askRulesQuestion(question, undefined, provider);
+
+    expect(result).toMatchObject({ abstained: true, refusal: false, citation: null });
+  });
+
+
+  it("keeps an explicitly matching supported context", async () => {
+    const provider = fakeProvider({
+      answer: "The 3-person 60% threshold is $92,580.",
+      rule_id: "HUD-MTSP-002",
+      abstained: false,
+      requested_program_id: null,
+      requested_metro_id: null,
+      requested_rule_year: null,
+    });
+
+    const result = await askRulesQuestion(
+      "What is the income limit for a 3-person household?",
+      {
+        program_id: "LIHTC",
+        metro_id: "boston_cambridge_quincy_ma_nh_hmfa",
+        rule_year: 2026,
+      },
+      provider,
+    );
+
+    expect(result.abstained).toBe(false);
+  });
+
   it("returns an answer with a citation rebuilt from the trusted corpus", async () => {
     const provider = fakeProvider({
       answer: "The FY 2026 limits take effect May 1, 2026.",

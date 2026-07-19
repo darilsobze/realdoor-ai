@@ -8,6 +8,12 @@ export interface ConfirmedRulesContext {
   rule_year?: number;
 }
 
+export const DEFAULT_RULES_CONTEXT: Required<ConfirmedRulesContext> = {
+  program_id: "LIHTC",
+  metro_id: "boston_cambridge_quincy_ma_nh_hmfa",
+  rule_year: 2026,
+};
+
 export interface RulesQuestionProvider {
   readonly name: string;
   isConfigured(): boolean;
@@ -50,23 +56,53 @@ const SUPPORTED_METRO_ID = "boston_cambridge_quincy_ma_nh_hmfa";
 const SUPPORTED_METRO_NAMES = /\b(?:Boston|Cambridge|Quincy)(?:[-\s,]+(?:Cambridge|Quincy|MA|NH))*\b/i;
 
 function requestedYearFromQuestion(question: string): number | null {
-  const match = question.match(/\b(20\d{2})\b/);
-  return match ? Number(match[1]) : null;
+  const years = [...question.matchAll(/\b(20\d{2})\b/g)].map((match) => Number(match[1]));
+  const uniqueYears = [...new Set(years)];
+  if (uniqueYears.length > 1) return -1;
+  return uniqueYears[0] ?? null;
+}
+
+function requestedProgramFromQuestion(question: string): string | null {
+  const supported = /\b(?:LIHTC|low[-\s]income housing tax credit)\b/i.test(question);
+  const unsupported = /\b(?:section\s*8|housing choice voucher|public housing)\b/i.test(question);
+  if (supported && unsupported) return "conflicting_housing_programs";
+  if (supported) return "LIHTC";
+  if (unsupported) {
+    return "unsupported_housing_program";
+  }
+  return null;
 }
 
 function requestedMetroFromQuestion(question: string): string | null {
+  const comparison = question.match(
+    /\b([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,3})\s+(?:vs\.?|versus|and)\s+([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,3})(?=\s+(?:income\s+)?limits?\b)/i,
+  );
+  if (comparison) {
+    const leftSupported = SUPPORTED_METRO_NAMES.test(comparison[1]);
+    const rightSupported = SUPPORTED_METRO_NAMES.test(comparison[2]);
+    if (leftSupported && rightSupported) return SUPPORTED_METRO_ID;
+    return "conflicting_or_unsupported_metros";
+  }
   if (SUPPORTED_METRO_NAMES.test(question)) return SUPPORTED_METRO_ID;
+  const leadingFor = question.match(
+    /^\s*for\s+([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,3})\s*,/i,
+  );
   const afterMetric = question.match(
     /\b(?:threshold|income limit|limit)\s+(?:in|for)\s+([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,3})(?=\s*(?:[?.!,]|$))/i,
   );
   const beforeMetric = question.match(
     /\b([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,5})\s+(?:metro|hmfa|threshold|income limit)\b/i,
   );
-  const raw = afterMetric?.[1] ?? beforeMetric?.[1];
+  const beforeHousehold = question.match(
+    /\b([a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,3})\s+(?:household|resident|applicant|family)\b/i,
+  );
+  const raw = leadingFor?.[1] ?? afterMetric?.[1] ?? beforeMetric?.[1] ?? beforeHousehold?.[1];
   if (!raw) return null;
-  const leadingStopWords = new Set(["what", "which", "is", "are", "the", "a", "an", "for"]);
+  const leadingStopWords = new Set([
+    "what", "which", "how", "much", "can", "could", "would", "is", "are", "the", "a", "an", "for",
+  ]);
   const nonLocationWords = new Set([
-    "household", "size", "frozen", "percent", "income", "ami", "mtsp", "lihtc",
+    "household", "size", "frozen", "percent", "income", "ami", "mtsp", "lihtc", "my", "our", "this",
   ]);
   const words = raw.toLowerCase().split(/\s+/).filter(Boolean);
   while (words.length > 0 && leadingStopWords.has(words[0])) words.shift();
@@ -84,7 +120,11 @@ function scopeMatches(
   question: string,
   context?: ConfirmedRulesContext,
 ): boolean {
-  const programs = [context?.program_id, output.requested_program_id];
+  const programs = [
+    context?.program_id,
+    output.requested_program_id,
+    requestedProgramFromQuestion(question),
+  ];
   const metros = [
     context?.metro_id,
     output.requested_metro_id,
@@ -135,8 +175,9 @@ export async function askRulesQuestion(
   provider: RulesQuestionProvider,
 ): Promise<RulesAnswer> {
   const corpus = getRulesCorpus();
+  const effectiveContext = context ?? DEFAULT_RULES_CONTEXT;
   const firstRaw = await provider.requestAnswer(question, corpus);
-  const first = buildAnswer(firstRaw, corpus, question, context);
+  const first = buildAnswer(firstRaw, corpus, question, effectiveContext);
   if (first) return first;
 
   const validation = RulesLlmOutputSchema.safeParse(firstRaw);
@@ -146,5 +187,5 @@ export async function askRulesQuestion(
       ? "The response could not be tied to a supported corpus rule."
       : validation.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; "),
   });
-  return buildAnswer(retryRaw, corpus, question, context) ?? abstain();
+  return buildAnswer(retryRaw, corpus, question, effectiveContext) ?? abstain();
 }
