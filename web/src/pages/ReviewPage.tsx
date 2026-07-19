@@ -18,6 +18,7 @@ import {
 } from "@/components/derived-panels";
 import { GOLD_CHECKLIST } from "@/lib/checklist";
 import { UncertaintyCenter } from "@/components/uncertainty-center";
+import { DeleteEverything } from "@/components/delete-everything";
 import { WhatWillUpdateDialog, type PendingCorrection } from "@/components/what-will-update";
 import { buildDerived, diffOutputs, withCorrection } from "@/lib/calculations";
 import { FIELD_META } from "@/lib/field-meta";
@@ -170,6 +171,7 @@ export function ReviewPage() {
             <ArrowLeft aria-hidden="true" data-icon="inline-start" />
             Upload another document
           </Button>
+          <DeleteEverything />
         </div>
       </header>
 
