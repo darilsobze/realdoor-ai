@@ -56,7 +56,12 @@ export const openaiProvider: ExtractionProvider = {
       model: MODEL,
       // Reasoning tokens count toward this cap — keep headroom above the JSON.
       max_completion_tokens: 8192,
-      reasoning_effort: "low",
+      // "medium": low-effort runs mis-transcribed hard glyph regions
+      // inconsistently (e.g. a garbled date), breaking run-to-run stability.
+      reasoning_effort: "medium",
+      // Best-effort determinism: identical requests should yield identical
+      // outputs so the same document extracts the same way on every run.
+      seed: 20260718,
       response_format: {
         type: "json_schema",
         json_schema: {

@@ -13,8 +13,8 @@ FINALLY:          C9 together
 ```
 
 ## Hoan — server/ + data/rules/  (branch prefix `hoan/`)
-- [ ] FIRST TASK (unblocks Daril's C4) — fix extraction over-abstention on clean stubs: document_type gets a classification path (no token match), multi-token date matching (date normalization currently too strict), regression test asserting ≥6 proposed fields on stub_clean.pdf. Small PR, fast merge.
-- [ ] C6: /rules + /rules/ask endpoints — full frozen corpus in context (OpenAI, same provider seam + OPENAI_API_KEY as extraction), answer only from corpus, citation + effective date (corpus freeze date when effective_date is null), abstain when uncovered, eligibility-question refusal + redirect. Update docs/api.md in the same PR.
+- [x] Over-abstention fix — CLOSED (finished by Daril on daril/fix-abstention, which builds on Hoan's document_type classification path + parseDate tolerance). Added: date digit-sequence matching with confusables + unique-window ambiguity abstain, low-OCR-confidence demotion of exact matches (high→medium under 60%), document_date in EXPECTED_FIELDS.pay_stub, one completeness follow-up call when the LLM omits expected fields, reasoning_effort medium + seed, canonical field order, extract-v3. Verified on the demo machine: prove ×2 byte-identical, 7 proposed, gross 1580/high; to_correct gross:medium; degraded gross abstains; 19 server tests green.
+- [ ] ACTIVE (start from latest main): C6: /rules + /rules/ask endpoints — full frozen corpus in context (OpenAI, same provider seam + OPENAI_API_KEY as extraction), answer only from corpus, citation + effective date (corpus freeze date when effective_date is null), abstain when uncovered, eligibility-question refusal + redirect. Update docs/api.md in the same PR.
 - [ ] C7 (server half): injection tests (document text AND filename), cross-session ID rejection test, audit-log hygiene (no raw document content), deletion-proof endpoint behavior (delete → re-fetch → 404).
 - [ ] C9 input: run extraction against the organizer's 24 gold docs; report field accuracy / source-box accuracy / abstention numbers to Emmanuel for the metrics page.
 

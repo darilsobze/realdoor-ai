@@ -5,24 +5,16 @@ import { randomUUID } from "node:crypto";
 import {
   ExtractedFieldSchema,
   ExtractionResultSchema,
-  type DocumentType,
+  FIELD_ALLOWLIST,
   type ExtractedField,
   type ExtractionResult,
   type FieldName,
 } from "../../../web/src/contracts/index.ts";
 import { ocrPdf, type OcrPage } from "../ocr.ts";
 import { extractFields } from "./extract.ts";
-import { EXTRACTION_VERSION, type LlmExtraction } from "./schema.ts";
+import { EXPECTED_FIELDS, EXTRACTION_VERSION, type LlmExtraction } from "./schema.ts";
 import { matchValueToTokens } from "./match.ts";
 import { normalizeField } from "./normalize.ts";
-
-/** Fields a renter would expect on each document type; missing ones become
- *  explicit unable_to_extract rows instead of silently disappearing. */
-const EXPECTED_FIELDS: Partial<Record<DocumentType, FieldName[]>> = {
-  pay_stub: ["gross_pay", "pay_period_start", "pay_period_end", "pay_frequency", "employer_name"],
-  benefit_letter: ["benefit_amount", "benefit_frequency", "document_date"],
-  employment_letter: ["employer_name", "document_date"],
-};
 
 function abstained(
   documentId: string,
@@ -65,6 +57,13 @@ function buildFields(
     const { value, unit } = normalizeField(fieldName, f.raw_text);
 
     if (match.tier === "none") {
+      // Local debugging only (synthetic fixtures). Never enabled in normal
+      // runs — raw document text must not reach logs (CLAUDE.md).
+      if (process.env.DEBUG_EXTRACTION === "1") {
+        console.error(
+          `[debug] no token match: field=${fieldName} raw_text=${JSON.stringify(f.raw_text)} page=${f.page}`,
+        );
+      }
       out.push(
         abstained(
           documentId,
@@ -131,7 +130,7 @@ function buildFields(
 
   // Expected-but-missing fields become explicit abstentions (based on the
   // model's classification, whether or not its evidence matched).
-  for (const field of EXPECTED_FIELDS[llm.document_type as DocumentType] ?? []) {
+  for (const field of (EXPECTED_FIELDS[llm.document_type] ?? []) as FieldName[]) {
     if (!seen.has(field)) {
       out.push(
         abstained(documentId, field, "This value could not be read from the document."),
@@ -151,6 +150,10 @@ export async function extractDocument(
     pages.map((p) => ({ page: p.page, text: p.text, png: p.png })),
   );
   const fields = buildFields(documentId, llm, pages).map((f) => ExtractedFieldSchema.parse(f));
+  // Canonical allowlist order: run-to-run output must be comparable byte for byte.
+  fields.sort(
+    (a, b) => FIELD_ALLOWLIST.indexOf(a.field_name) - FIELD_ALLOWLIST.indexOf(b.field_name),
+  );
   return ExtractionResultSchema.parse({
     document_id: documentId,
     extraction_version: EXTRACTION_VERSION,

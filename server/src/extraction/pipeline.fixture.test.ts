@@ -34,5 +34,12 @@ describe("stub_clean extraction regression", () => {
     const proposed = result.fields.filter((field) => field.state === "proposed");
 
     expect(proposed.length).toBeGreaterThanOrEqual(6);
+
+    // Row-set stability: document_date must always be present for a pay stub —
+    // proposed when readable, an explicit abstention otherwise — regardless of
+    // whether the LLM volunteered it (here the mock did not).
+    const documentDate = result.fields.find((f) => f.field_name === "document_date");
+    expect(documentDate).toBeDefined();
+    expect(documentDate?.state).toBe("unresolved");
   });
 });
