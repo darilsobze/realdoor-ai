@@ -11,8 +11,9 @@ Known bug (logged in TODO): extraction over-abstains on clean stubs (document_ty
 
 ### Daril — Integration lead & frontend core (owns: `web/src/ui`, `web/src/store`, CLAUDE.md, TODO.md, MERGES)
 The only person who merges to main and the only person who edits CLAUDE.md/TODO.md (others request changes via PR comment). Keeps the Claude Code session that has full history.
-- C3: upload + field-review UI (evidence highlights, confirm/correct, version toast)
-- C4: confirmedProfile store, propagation, "what will update" preview (uses Hoan's engine functions via the frozen contracts)
+- C3: upload + field-review UI (evidence highlights, confirm/correct, version toast) — DONE
+- C4: confirmedProfile store, propagation, "what will update" preview — DONE
+- C7 UI half (taken over from Emmanuel, 2026-07-19): the Safety Test Panel page — five live proofs (refusal, injection via document + filename, unconfirmed-reuse block, deletion + cross-session rejection)
 - Merge every PR same-day; resolve any conflict with the branch owner present
 - Owns the GitHub repo settings and the demo machine
 
@@ -25,8 +26,8 @@ Runs their own Claude Code sessions scoped to server work ("work only inside ser
 
 ### Emmanuel — Product, checklist/packet & quality (owns: `web/src/engine`, checklist/packet UI routes, `docs/`, `data/checklist/`)
 Runs their own Claude Code sessions scoped accordingly.
-- C5: checklist engine vs gold.json (pure + tested; unconfirmed date → needs_confirmation, never expired) and the packet preview/download. Includes the queued decision: pick which organizer requirements demonstrate "Missing" and "Expired" with our fixtures, test it, update docs/demo-script.md
-- C7 UI half: the Safety Test Panel page (wires to Hoan's endpoints)
+- C5: checklist engine vs gold.json (pure + tested; unconfirmed date → needs_confirmation, never expired) and the packet preview/download. Includes the queued decision: pick which organizer requirements demonstrate "Missing" and "Expired" with our fixtures, test it, update docs/demo-script.md — DONE (merged)
+- ~~C7 UI half: the Safety Test Panel page~~ REASSIGNED to Daril (2026-07-19): Emmanuel goes straight to C8 prep + packet polish; the safety-panel route lives in Daril's fence (web/src/ui) for this task
 - C8: accessibility pass — Playwright keyboard journey, axe-core, aria-live, zoom; plus one manual keyboard-only run
 - C9: metrics page, risk-note finalization, demo-script verification; owns the pitch deck and the 6-minute rehearsal as demo lead
 - Lovable prototype iteration for layout ideas (screenshots → to Daril, never code)
