@@ -15,8 +15,12 @@ export function HeroMedia() {
 
   return (
     <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
-      {/* Gradient base — always present, shows if poster + video are missing. */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent via-background to-secondary" />
+      {/* Gradient base — a deep navy, so the white hero text stays AA even when
+          poster + video are both missing. */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(155deg, #24304d 0%, #141d33 55%, #0e1526 100%)" }}
+      />
 
       {/* Poster — hidden if it fails to load, revealing the gradient. */}
       {!posterFailed && (
@@ -43,21 +47,14 @@ export function HeroMedia() {
         />
       )}
 
-      {/* Soft scrim: a moderate overall wash keeps AA and lets the (bright,
-          warm) media show, plus a stronger pool behind the centered text so
-          dark ink text stays readable regardless of the frame beneath it. */}
+      {/* Dark scrim: keeps white hero text at AA over the (bright, warm) media,
+          with a stronger pool behind the centered text and a darker foot for the
+          eligibility band, while the scene still shows through the edges. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/65" />
       <div
         className="absolute inset-0"
-        style={{ backgroundColor: "color-mix(in oklch, var(--background) 45%, transparent)" }}
+        style={{ background: "radial-gradient(60% 55% at 50% 44%, rgba(8,12,22,0.42), transparent 78%)" }}
       />
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(62% 55% at 50% 46%, color-mix(in oklch, var(--background) 58%, transparent), transparent 78%)",
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-transparent to-background/45" />
     </div>
   );
 }

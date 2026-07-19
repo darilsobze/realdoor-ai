@@ -3,7 +3,7 @@
 // extraction — a staged progress checklist whose timing mirrors the real
 // pipeline (see handleFile). Motion respects prefers-reduced-motion.
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, FileText, FileUp, Info, ListChecks, ShieldCheck } from "lucide-react";
+import { ChevronDown, FileText, FileUp, Info, ListChecks, MapPin, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -45,6 +45,8 @@ export function UploadPage() {
   const [statuses, setStatuses] = useState<StageStatus[]>(allPending);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Display-only geography: Boston is the only trained/validated metro today.
+  const [city, setCity] = useState("boston");
   const inputRef = useRef<HTMLInputElement>(null);
   const lastFile = useRef<File | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -227,6 +229,36 @@ export function UploadPage() {
             style={{ animationDelay: "180ms" }}
           >
             <CardContent className="p-8">
+              {/* Select city — RealDoor is validated for Boston only today. */}
+              <div className="mb-6 flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
+                    <MapPin aria-hidden="true" className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-ink">Select city</p>
+                    <p className="text-xs text-subtle">
+                      RealDoor is currently trained and validated only for Boston. More cities are planned.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 sm:items-end">
+                  <label htmlFor="city-select" className="text-[0.65rem] font-semibold uppercase tracking-wide text-subtle">
+                    Available geography
+                  </label>
+                  <select
+                    id="city-select"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink"
+                  >
+                    <option value="boston">Boston, MA</option>
+                    <option value="nyc" disabled>New York, NY (coming soon)</option>
+                    <option value="chicago" disabled>Chicago, IL (coming soon)</option>
+                  </select>
+                </div>
+              </div>
+
               <div
                 className={cn(
                   "group/drop flex flex-col items-center gap-4 rounded-lg border-2 border-dashed px-6 py-14 text-center transition-all duration-200 ease-(--ease-out-soft)",
