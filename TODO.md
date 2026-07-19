@@ -20,7 +20,7 @@ FINALLY: C9 — metrics page (Hoan's numbers) · risk-note · demo rehearsal (Da
 - [x] /rules/ask scope-default — MERGED (43d60d7): DEFAULT_RULES_CONTEXT (LIHTC / boston / 2026) applied when no confirmedContext; conflicting/unsupported program-metro-year sentinels force abstention; api.md updated. Verified live: no-context question resolves to boston; wrong metro still abstains.
 - [x] C7 (server half) — MERGED (43d60d7): filename-injection integration test (hostile filename never reaches provider input or audit log; only allowlisted fields returned), document-injection boundary test (smuggled eligibility field → strict schema reject → retry once → abstain), cross-session rejection extended to /extract, deleted-session routes 404. 58 server tests green on demo machine.
 - [x] Rules Q&A determinism — FIXED (5143d48, merged cd4b949): Daril crossed into server/src/rules/providers/openai.ts (approved one-change fence cross) — added seed 20260718 + reasoning_effort medium to match the extraction provider. Demo step-3 answers 5/5 (no-context AND explicit APP_SCOPE); wrong-metro abstains 3/3; refusal holds. Hoan notified his fence was touched + why.
-- [ ] C9 input (unblocked by the rendering fix): run extraction against the organizer's 24 gold docs; report field accuracy / source-box accuracy / abstention numbers to Daril for the metrics page.
+- [x] C9 input — MERGED (e23e1d0): gold-set extraction accuracy scorer + cache-aware CLI (server/src/evaluation/gold-metrics.ts, gold-runner.ts, scripts/evaluate-gold.ts) — field accuracy / source-box accuracy / abstention rate vs the organizer's 24 gold docs, +21 server tests (81 total). Server-only, zero-overlap conflict-free merge. Unblocks Daril's metrics page.
 
 ## Emmanuel — DEPARTED (2026-07-19); no further changes. All remaining tasks moved to Daril; owned dirs (web/src/engine, checklist/packet UI, docs/, data/checklist/) absorbed by Daril.
 - [x] C5 engine — MERGED (fe63e5b): pure annualize/sumIncomeSources/compareToThreshold, typed blocked results, 17 tests.
@@ -42,7 +42,7 @@ FINALLY: C9 — metrics page (Hoan's numbers) · risk-note · demo rehearsal (Da
 - [~] C9 (Daril, demo lead) — in progress:
   - [x] docs/risk-note.md FINALIZED (b101ac3): feature register, AI-model disclosure (OpenAI, determinism, key hygiene), licenses from real dep metadata + HUD/organizer terms, limitations corrected.
   - [x] demo-script.md verified + reconciled (b101ac3): keyboard-journey (steps 1-4, packet, delete) + drive-safety (6a/6b/6c) pass on demo machine; checklist engine covers step-5 gig-Missing/employment-Expired; Close-step metrics noted as pending; single-document note added.
-  - [ ] BLOCKED on Hoan: metrics page (#/metrics) — field accuracy, source-box accuracy, abstention rate vs gold need Hoan's 24-doc gold-set numbers. Test-pass counts + abstention rate are computable now; can scaffold the page with those + pending slots if desired.
+  - [ ] UNBLOCKED — metrics page (#/metrics): Hoan's gold scorer merged (server/src/evaluation + scripts/evaluate-gold.ts). Run the CLI to produce field/source-box accuracy + abstention numbers, surface them on the page alongside test-pass counts.
   - [ ] HUMAN: pitch deck + timed 6-minute rehearsal ×2 + backup screen recording; one manual keyboard-only run (also the outstanding C8 human item).
 
 ## Done (compressed history — see git log for detail)
