@@ -35,7 +35,12 @@ export const openaiRulesProvider: RulesQuestionProvider = {
     const completion = await getClient().chat.completions.create({
       model: MODEL,
       max_completion_tokens: 4096,
-      reasoning_effort: "low",
+      // Determinism to match the extraction provider: at "low" effort with no
+      // seed the model non-deterministically abstained on corpus-supported
+      // questions (demo step-3 answered ~1 of 3 runs). Same seed + effort make
+      // the same question resolve the same way every time.
+      reasoning_effort: "medium",
+      seed: 20260718,
       response_format: {
         type: "json_schema",
         json_schema: {
