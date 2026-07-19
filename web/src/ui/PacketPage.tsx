@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Download, FileCheck2, Info } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Download, FileCheck2, Info, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -9,6 +9,8 @@ import {
 } from "@/engine";
 import type { PacketAttachment } from "@/engine/packet-pdf";
 import { ChecklistTraceCard } from "@/components/trace-cards";
+import { PacketGallery } from "@/components/packet-gallery";
+import type { StatusVariant } from "@/components/status-badge";
 import { buildDerived } from "@/lib/calculations";
 import { GOLD_CHECKLIST, requirementTitle } from "@/lib/checklist";
 import { FIELD_META, formatValue } from "@/lib/field-meta";
@@ -111,6 +113,9 @@ export function PacketPage() {
   const [includeDocument, setIncludeDocument] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState("");
+  // Sections the renter has reviewed and dropped into the packet folder.
+  const [collected, setCollected] = useState<Set<string>>(new Set());
+  const [notice, setNotice] = useState("");
 
   const context = useMemo(
     () => ({ profileVersion: state.profileVersion, computedAt: state.lastChangedAt }),
@@ -127,6 +132,21 @@ export function PacketPage() {
       ),
     [state.fields, state.householdSize, state.document?.id, context],
   );
+
+  // Packet integrity: a profile change after collecting invalidates the
+  // collected set (values/derived may have moved), so reset with a notice.
+  const lastVersion = useRef(state.profileVersion);
+  useEffect(() => {
+    if (state.profileVersion === lastVersion.current) return;
+    lastVersion.current = state.profileVersion;
+    setCollected((prev) => {
+      if (prev.size === 0) return prev;
+      setNotice(
+        `Your profile changed to v${state.profileVersion}, so collected sections were reset — recollect them to keep the packet in sync with your confirmed values.`,
+      );
+      return new Set();
+    });
+  }, [state.profileVersion]);
 
   if (!state.sessionId || !state.document) {
     return (
@@ -189,7 +209,29 @@ export function PacketPage() {
   const matchedSummary =
     matchedDocs > 0 ? `${matchedDocs} ${typeLabel}${matchedDocs === 1 ? "" : "s"} matched` : "No documents matched yet";
 
+  const checklistStatuses = derived.checklist.map((r) => r.status as StatusVariant);
+  const allCollected = collected.size === sections.length;
+
+  function addSection(name: string) {
+    setCollected((prev) => new Set(prev).add(name));
+    setNotice("");
+  }
+  function removeSection(name: string) {
+    setCollected((prev) => {
+      const next = new Set(prev);
+      next.delete(name);
+      return next;
+    });
+    const isUnresolved = name === "Unresolved items" && unresolvedItems.length > 0;
+    setNotice(
+      isUnresolved
+        ? `Removed "${name}". Some items still need confirmation — the reviewer needs this section to see what's outstanding.`
+        : `Removed "${name}". All six sections are required before you can download.`,
+    );
+  }
+
   async function download() {
+    if (!allCollected) return;
     setDownloading(true);
     setMessage("");
     try {
@@ -281,28 +323,45 @@ export function PacketPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-4">
-        {sections.map((section) => (
-          <Card key={section.name}>
-            <CardContent className="p-5">
-              <h2 className="mb-3 text-base">{section.name}</h2>
-              <ul className="flex flex-col gap-2">
-                {section.lines.map((line, index) => (
-                  <li key={`${section.name}-${index}`} className="break-words text-sm text-body">
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <section aria-labelledby="packet-gallery-heading" className="flex flex-col gap-3">
+        <div>
+          <h2 id="packet-gallery-heading" className="text-lg">Your packet, page by page</h2>
+          <p className="text-sm text-subtle">
+            Turn the ring to review each section, then drop it into the folder — or use each page's
+            “Add to packet”. Collect all six to enable the download.
+          </p>
+        </div>
+
+        {notice && (
+          <p
+            role="status"
+            className="flex items-start gap-2 rounded-lg border border-status-info/30 bg-status-info-bg p-3 text-sm text-status-info"
+          >
+            <RefreshCw aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            {notice}
+          </p>
+        )}
+
+        <PacketGallery
+          sections={sections}
+          checklistStatuses={checklistStatuses}
+          collected={collected}
+          onAdd={addSection}
+          onRemove={removeSection}
+        />
+      </section>
 
       <div className="sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-surface p-4 shadow-lg">
-        <p aria-live="polite" className="text-sm text-body">{message}</p>
-        <Button onClick={download} disabled={downloading}>
+        <p aria-live="polite" className="text-sm text-body">
+          {message || (allCollected ? "All six sections collected — ready to download." : `${collected.size} of ${sections.length} sections collected.`)}
+        </p>
+        <Button onClick={download} disabled={downloading || !allCollected}>
           <Download aria-hidden="true" data-icon="inline-start" />
-          {downloading ? "Building packet…" : "Download my packet"}
+          {downloading
+            ? "Building packet…"
+            : allCollected
+              ? "Download my packet"
+              : "Collect all sections to download"}
         </Button>
       </div>
     </main>
