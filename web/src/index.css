@@ -80,7 +80,7 @@
     --foreground: #3F4450;          /* body text */
     --ink: #1A1D23;                 /* headings */
     --body: #3F4450;
-    --subtle: #6B7180;              /* secondary text */
+    --subtle: #5D6370;              /* secondary text — darkened from #6B7180 to meet AA 4.5:1 on muted/bg surfaces, not just white */
     --card: #FFFFFF;
     --card-foreground: #3F4450;
     --popover: #FFFFFF;
