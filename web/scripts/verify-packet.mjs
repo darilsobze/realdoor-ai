@@ -37,8 +37,10 @@ await page.waitForTimeout(300);
 console.log("confirmed");
 
 // 3) packet preview
-await page.locator('button:has-text("Packet preview")').click();
-await page.waitForTimeout(600);
+await page.goto("http://localhost:5173/#/packet", { waitUntil: "networkidle" });
+await page.waitForSelector("[data-collect-target]", { timeout: 10_000 });
+await page.waitForTimeout(700);
+// Parity text must be present at rest, even with the pages in the 3D ring.
 const previewText = await page.locator("main").innerText();
 await page.screenshot({ path: join(outDir, "packet-1280.png"), fullPage: true });
 await page.setViewportSize({ width: 380, height: 850 });
@@ -46,12 +48,24 @@ await page.waitForTimeout(300);
 await page.screenshot({ path: join(outDir, "packet-380.png"), fullPage: true });
 await page.setViewportSize({ width: 1280, height: 900 });
 
-// 4) keyboard-only: include the document, then download
+// 4) collect every page (download is gated until all six are in the packet)
+const adds = page.locator("[data-card-add]");
+const cardCount = await adds.count();
+for (let i = 0; i < cardCount; i++) {
+  const add = adds.nth(i);
+  await add.focus();
+  if (/Add to packet/.test(await add.innerText())) {
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(150);
+  }
+}
+
+// keyboard-only: include the document, then download
 const checkbox = page.locator('input[type="checkbox"], [role="checkbox"]').first();
 await checkbox.focus();
 await page.keyboard.press("Space");
 await page.waitForTimeout(200);
-const downloadBtn = page.locator('button:has-text("Download")').first();
+const downloadBtn = page.locator('button:has-text("Download my packet")').first();
 await downloadBtn.focus();
 const [download] = await Promise.all([
   page.waitForEvent("download", { timeout: 60_000 }),

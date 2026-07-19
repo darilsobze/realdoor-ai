@@ -78,10 +78,21 @@ await page.waitForFunction(() => /\$92,580/.test(document.body.innerText), { tim
 await page.waitForTimeout(600);
 total += await scan("understand (answer shown)");
 
-// Packet — checklist trace auto-plays; scan settled.
+// Packet — the 3D ring continuously animates card opacity, so (like the trace
+// fade frames) scan the stable, functionally-identical reduced-motion flat row,
+// which is what reduced-motion users get. Also scan the expanded preview dialog.
+await page.emulateMedia({ reducedMotion: "reduce" });
 await page.goto("http://localhost:5173/#/packet", { waitUntil: "networkidle" });
-await page.waitForTimeout(3200);
-total += await scan("packet");
+await page.waitForSelector("[data-collect-target]", { timeout: 10_000 });
+await page.waitForTimeout(3200); // checklist trace above the gallery settles
+total += await scan("packet (gallery — reduced-motion flat row)");
+await page.locator('button[aria-label^="Expand page 1"]').first().click().catch(() => {});
+await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
+await page.waitForTimeout(300);
+total += await scan("packet (expanded preview dialog)");
+await page.keyboard.press("Escape");
+await page.waitForTimeout(200);
+await page.emulateMedia({ reducedMotion: null });
 
 // Safety panel (idle, then one check done).
 await page.goto("http://localhost:5173/#/safety", { waitUntil: "networkidle" });

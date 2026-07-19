@@ -123,9 +123,29 @@ await page.waitForFunction(() => /92,580/.test(document.body.innerText), { timeo
 const answerText = await page.locator("main").innerText();
 ok("ask: corpus answer with citation shown", /92,580/.test(answerText) && /effective/i.test(answerText));
 
-// 5. PACKET — back to review, into packet, download by keyboard.
+// 5. PACKET — into packet, collect all six pages by keyboard, then download.
 await page.goto("http://localhost:5173/#/packet", { waitUntil: "networkidle" });
-await page.waitForTimeout(400);
+await page.waitForSelector("[data-card-add]", { timeout: 10_000 });
+await page.waitForTimeout(300);
+// Gate: with nothing collected the download is disabled (labelled differently),
+// so no "Download my packet" button exists yet.
+const gatedBefore = await page.locator('button:has-text("Download my packet")').count();
+ok("packet: download gated until all sections collected", gatedBefore === 0);
+// Collect every page via its keyboard-reachable "Add to packet" button. Focusing
+// a card brings it to the front of the ring and pauses the spin (stable target).
+const adds = page.locator("[data-card-add]");
+const cardCount = await adds.count();
+for (let i = 0; i < cardCount; i++) {
+  const add = adds.nth(i);
+  await add.focus();
+  if (/Add to packet/.test(await add.innerText())) {
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(150);
+  }
+}
+const dlEnabled = await page.locator('button:has-text("Download my packet")').isEnabled().catch(() => false);
+ok("packet: collecting all six pages enables download", cardCount === 6 && dlEnabled);
+// Include the rendered document, then download.
 const cb = page.locator('input[type="checkbox"]');
 await cb.focus();
 await page.keyboard.press("Space");
