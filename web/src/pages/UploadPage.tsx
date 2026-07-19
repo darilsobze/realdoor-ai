@@ -142,7 +142,11 @@ export function UploadPage() {
   const showProgress = busy || error !== null;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-(--container-reading) flex-col gap-8 px-6 py-16">
+    <main
+      id="application"
+      tabIndex={-1}
+      className="mx-auto flex min-h-screen w-full max-w-(--container-reading) flex-col gap-8 px-6 py-16 scroll-mt-14 focus:outline-none"
+    >
       <span id="extraction-announcer" aria-live="assertive" className="sr-only" />
 
       <header className="flex flex-col gap-2">
@@ -259,7 +263,7 @@ export function UploadPage() {
                   <Button type="button" onClick={() => inputRef.current?.click()}>
                     Choose a PDF
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => void loadSample()}>
+                  <Button id="try-sample" type="button" variant="outline" onClick={() => void loadSample()}>
                     <FileText aria-hidden="true" data-icon="inline-start" />
                     Try a sample pay stub
                   </Button>

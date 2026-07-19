@@ -28,9 +28,17 @@ async function tabTo(matcher, max = 40) {
   return false;
 }
 
-// 1. UPLOAD — tab to the file button, open it via keyboard, set files.
+// 1. LANDING → UPLOAD — the skip-link is the first focusable; it jumps past the
+// hero to the application section. Then tab to the file button.
 await page.goto("http://localhost:5173/#/", { waitUntil: "networkidle" });
 await page.reload({ waitUntil: "networkidle" });
+await page.keyboard.press("Tab");
+const skipText = await focusText();
+ok("landing: skip-link is the first focusable element", /Skip to application/.test(skipText), skipText);
+await page.keyboard.press("Enter");
+await page.waitForTimeout(300);
+const atApplication = await page.evaluate(() => document.activeElement?.id === "application");
+ok("landing: skip-link scrolls + moves focus to the application section", atApplication);
 const onUpload = await tabTo(/Choose a PDF/);
 ok("upload: reach 'Choose a PDF' by Tab", onUpload);
 ok("upload: it is a focusable native button (Enter/Space operable)", (await focusTag()) === "BUTTON");
