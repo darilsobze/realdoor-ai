@@ -3,7 +3,7 @@
 // structured corpus (lib/rules), never from model text; deterministic math
 // steps come from the engine via the confirmed-profile store. Refusals and
 // abstentions render as calm informational panels: both are correct behavior.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ban, BookOpenCheck, Brain, Info, Loader2, MessageCircleQuestion, MessageCircleReply, ScanSearch, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { IncomeTraceCard, ComparisonTraceCard } from "@/components/trace-cards";
 import { ComputationTrace, type TraceSource, type TraceStep } from "@/components/computation-trace";
 import { ApiError, askRules, type RulesAskResponse } from "@/lib/api";
 import { buildDerived } from "@/lib/calculations";
+import { usePrefersReducedMotion } from "@/lib/motion";
 import { APP_SCOPE, SCORED_RULE, ruleById } from "@/lib/rules";
 import { useReview } from "@/store/review";
 
@@ -202,6 +203,14 @@ export function UnderstandPage() {
   // Increments each ask so the trace animates fresh every time.
   const [askId, setAskId] = useState(0);
   const [askedText, setAskedText] = useState("");
+  const reduced = usePrefersReducedMotion();
+  // Bring the Ask output to the top of the viewport on each new question so the
+  // thinking process is comfortably in view (the page has scroll room below).
+  const askOutputRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (askId === 0) return;
+    askOutputRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  }, [askId, reduced]);
 
   const context = useMemo(
     () => ({ profileVersion: state.profileVersion, computedAt: state.lastChangedAt || "1970-01-01T00:00:00.000Z" }),
@@ -332,34 +341,42 @@ export function UnderstandPage() {
           {ask.kind === "loading" ? "Checking the rule library…" : ask.kind === "answered" ? "Answer ready." : ""}
         </p>
 
-        {ask.kind === "loading" && (
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium text-ink shadow-card">
-            <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
-            Thinking…
-          </div>
-        )}
+        <div ref={askOutputRef} className="flex scroll-mt-6 flex-col gap-4">
+          {ask.kind === "loading" && (
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium text-ink shadow-card">
+              <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
+              Thinking…
+            </div>
+          )}
 
-        {ask.kind === "error" && (
-          <div role="alert" className="rounded-lg border border-status-blocking/30 bg-status-blocking-bg p-4 text-sm text-status-blocking">
-            {ask.message}
-          </div>
-        )}
+          {ask.kind === "error" && (
+            <div role="alert" className="rounded-lg border border-status-blocking/30 bg-status-blocking-bg p-4 text-sm text-status-blocking">
+              {ask.message}
+            </div>
+          )}
 
-        {ask.kind === "answered" && (
-          <ComputationTrace
-            key={askId}
-            traceKey={`ask:${askId}`}
-            icon={BookOpenCheck}
-            title="Answer"
-            autoPlay
-            replayLabel="Re-run"
-            steps={askSteps(askedText, ask.response)}
-            sources={askSources(ask.response)}
-            announce={ask.response.refusal ? "Declined — this tool does not make decisions." : ask.response.citation ? "Answer ready with a citation." : "No authoritative rule found."}
-            result={() => renderAnswerBody(ask.response, citedRule, structuredThreshold, householdSize)}
-          />
-        )}
+          {ask.kind === "answered" && (
+            <ComputationTrace
+              key={askId}
+              traceKey={`ask:${askId}`}
+              icon={BookOpenCheck}
+              title="Answer"
+              autoPlay
+              replayLabel="Re-run"
+              steps={askSteps(askedText, ask.response)}
+              sources={askSources(ask.response)}
+              announce={ask.response.refusal ? "Declined — this tool does not make decisions." : ask.response.citation ? "Answer ready with a citation." : "No authoritative rule found."}
+              result={() => renderAnswerBody(ask.response, citedRule, structuredThreshold, householdSize)}
+            />
+          )}
+        </div>
       </section>
+
+      {/* Scroll room: the page extends below the Ask output so its thinking can
+          be scrolled to the top of the viewport and watched comfortably. */}
+      {(ask.kind === "loading" || ask.kind === "answered") && (
+        <div aria-hidden="true" className="h-[60vh] shrink-0" />
+      )}
     </main>
   );
 }
