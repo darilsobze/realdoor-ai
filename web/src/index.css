@@ -129,12 +129,18 @@
   h1, h2, h3, h4 {
     @apply text-ink font-semibold tracking-tight;
     }
-  /* Visible focus for every interactive element: 2px ring, 2px offset */
-  :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-    border-radius: 2px;
-    }
+}
+
+/*
+ * Visible focus for every interactive element: 2px offset ring (design brief).
+ * Deliberately UNLAYERED so it wins over shadcn's `outline-none` utility and
+ * component ring styles (which were rendering transparent) — unlayered rules
+ * beat any @layer. Applies app-wide, not just here.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex], [role="button"], [role="checkbox"]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: max(6px, var(--radius-sm));
 }
 
 @layer utilities {

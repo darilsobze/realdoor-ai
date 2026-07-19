@@ -76,6 +76,21 @@ export interface RulesAskResponse {
   refusal: boolean;
 }
 
+/** Raw request that never throws — for safety proofs that EXPECT 404s. */
+export async function apiRaw(
+  path: string,
+  init?: RequestInit,
+): Promise<{ status: number; body: unknown }> {
+  const res = await fetch(`/api${path}`, init);
+  const body: unknown = await res.json().catch(() => null);
+  return { status: res.status, body };
+}
+
+export async function deleteSession(sessionId: string): Promise<number> {
+  const res = await fetch(`/api/session/${sessionId}`, { method: "DELETE" });
+  return res.status;
+}
+
 export async function askRules(
   question: string,
   confirmedContext: { program_id?: string; metro_id?: string; rule_year?: number },

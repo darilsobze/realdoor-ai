@@ -4,7 +4,7 @@
 // C4 — every derived value (annualization, comparison, checklist, packet
 // preview) recomputed from the single confirmed-profile store on any change.
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BookOpenCheck, FileCheck2 } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, FileCheck2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DocumentViewer, type EvidenceTarget } from "@/components/document-viewer";
@@ -161,6 +161,10 @@ export function ReviewPage() {
           <Button variant="outline" size="sm" onClick={() => (window.location.hash = "#/understand")}>
             <BookOpenCheck aria-hidden="true" data-icon="inline-start" />
             Understand the rules
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => (window.location.hash = "#/safety")}>
+            <ShieldCheck aria-hidden="true" data-icon="inline-start" />
+            Safety
           </Button>
           <Button variant="ghost" size="sm" onClick={() => (window.location.hash = "#/")}>
             <ArrowLeft aria-hidden="true" data-icon="inline-start" />

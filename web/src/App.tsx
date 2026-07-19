@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { StyleGuide } from "@/ui/StyleGuide";
 import { PacketPage } from "@/ui/PacketPage";
+import { SafetyPanelPage } from "@/ui/SafetyPanelPage";
 import { UnderstandPage } from "@/ui/UnderstandPage";
 import { UploadPage } from "@/pages/UploadPage";
 import { ReviewPage } from "@/pages/ReviewPage";
@@ -25,6 +26,7 @@ export default function App() {
   else if (hash === "#/review") screen = <ReviewPage />;
   else if (hash === "#/understand") screen = <UnderstandPage />;
   else if (hash === "#/packet") screen = <PacketPage />;
+  else if (hash === "#/safety") screen = <SafetyPanelPage />;
   else screen = <UploadPage />;
 
   return (
