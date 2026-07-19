@@ -35,7 +35,8 @@ export const openaiRulesProvider: RulesQuestionProvider = {
     const completion = await getClient().chat.completions.create({
       model: MODEL,
       max_completion_tokens: 4096,
-      reasoning_effort: "low",
+      reasoning_effort: "medium",
+      seed: 20260718,
       response_format: {
         type: "json_schema",
         json_schema: {
