@@ -67,6 +67,8 @@ type Action =
       extraction: ExtractionResult;
     }
   | { type: "select"; id: string | null }
+  /** Wipe all client state after a real server-side session deletion. */
+  | { type: "reset" }
   /** Explicit renter confirmation. With correctedValue: proposed/unresolved →
    *  corrected → confirmed; without: proposed → confirmed. recomputedOutputs
    *  comes from diffing REAL engine records (lib/calculations.diffOutputs). */
@@ -92,6 +94,8 @@ function reducer(state: ReviewState, action: Action): ReviewState {
           wasCorrected: false,
         })),
       };
+    case "reset":
+      return initialState;
     case "select":
       return { ...state, selectedId: action.id };
     case "confirm": {
