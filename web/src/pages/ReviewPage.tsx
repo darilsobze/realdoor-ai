@@ -4,19 +4,13 @@
 // C4 — every derived value (annualization, comparison, checklist, packet
 // preview) recomputed from the single confirmed-profile store on any change.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { DocumentViewer, type EvidenceTarget } from "@/components/document-viewer";
 import { FieldCard } from "@/components/field-card";
 import { HouseholdSizeCard } from "@/components/household-size-card";
-import {
-  AnnualIncomePanel,
-  ChecklistPanel,
-  ComparisonPanel,
-  PacketPreviewPanel,
-} from "@/components/derived-panels";
-import { GOLD_CHECKLIST } from "@/lib/checklist";
 import { UncertaintyCenter } from "@/components/uncertainty-center";
 import { WhatWillUpdateDialog, type PendingCorrection } from "@/components/what-will-update";
 import { buildDerived, diffOutputs, withCorrection } from "@/lib/calculations";
@@ -134,18 +128,9 @@ export function ReviewPage() {
     announceUpdate("Household size", state.profileVersion + 1, outputs);
   }
 
-  function jumpToField(fieldName: string) {
-    if (fieldName === "household_size") {
-      document.getElementById("household-size-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-    const target = state.fields.find((f) => f.extracted.field_name === fieldName);
-    if (target) {
-      const el = document.getElementById(`field-card-${target.extracted.id}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      el?.focus({ preventScroll: true });
-    }
-  }
+  // Ready to "see what this means" once every readable value is confirmed and
+  // household size is set — the point where income + comparison compute.
+  const ready = needCount === 0 && state.householdSize.confirmedAt !== null;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
@@ -211,33 +196,38 @@ export function ReviewPage() {
         </div>
       </div>
 
-      <section aria-labelledby="derived-heading" className="flex flex-col gap-4">
-        <h2 id="derived-heading" className="text-lg">
-          Computed from your confirmed values
-        </h2>
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          <AnnualIncomePanel
-            derived={derived}
-            profileVersion={state.profileVersion}
-            onJumpToField={jumpToField}
-          />
-          <ComparisonPanel
-            derived={derived}
-            citation={SCORED_RULE.citation}
-            profileVersion={state.profileVersion}
-            onJumpToField={jumpToField}
-          />
-          <ChecklistPanel
-            derived={derived}
-            checklistVersion={GOLD_CHECKLIST.checklist_version}
-            profileVersion={state.profileVersion}
-          />
-          <PacketPreviewPanel
-            fields={state.fields}
-            derived={derived}
-            profileVersion={state.profileVersion}
-          />
-        </div>
+      <section aria-labelledby="next-heading">
+        {ready ? (
+          <Card className="border-primary/30 bg-accent/40">
+            <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+              <div>
+                <h2 id="next-heading" className="flex items-center gap-2 text-lg text-ink">
+                  <CheckCircle2 aria-hidden="true" className="size-5 text-status-confirmed" />
+                  All values confirmed
+                </h2>
+                <p className="mt-0.5 text-sm text-body">
+                  See what your numbers mean — annual income and the published-limit
+                  comparison, computed step by step from the frozen rules.
+                </p>
+              </div>
+              <Button onClick={() => (window.location.hash = "#/understand")}>
+                See what this means
+                <ArrowRight aria-hidden="true" data-icon="inline-end" />
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="flex items-start gap-3 p-5">
+              <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-status-info" />
+              <p className="text-sm text-body" id="next-heading">
+                Confirm your values{state.householdSize.confirmedAt ? "" : " and household size"}{" "}
+                above. Then you'll see what they mean — your income and the published-limit
+                comparison, computed from the rules.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <WhatWillUpdateDialog
