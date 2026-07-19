@@ -2,9 +2,9 @@
 
 > Commit this file to the repo root. The conflict-prevention rule is simple: **you only edit directories you own.** Cross-boundary changes go through the owner. Contracts are frozen (see below).
 
-## Where the project stands
-Done: contracts + design tokens + official 2026 data + fixtures (Phase 4), server with OCR→LLM extraction, sessions, real deletion (C2, on OpenAI), C3 review UI (commit df47921).
-Next up: extraction bug fix (Hoan) + engine functions (Emmanuel) → C4 engine/propagation (Daril) → C5 checklist+packet → C6 rules Q&A → C7 safety panel → C8 accessibility → C9 metrics + demo.
+## Where the project stands (updated 2026-07-19)
+Done: Phase 4 (contracts, tokens, data, fixtures) → C2 backend → C3 review UI → C4 engine + propagation → C5 checklist + packet (tagged `vertical-slice`) → C6 rules Q&A + Understand screen → **C7 Safety Test Panel (5 live proofs)**. Vector-PDF rendering fix merged (organizer gold PDFs extract). The full demo journey (steps 1–6) works end to end. main at 081686b.
+Next up: Hoan — C7 server tests + /rules/ask scope-default + 24-doc gold-set numbers. Emmanuel — packet confirmed-values polish → **C8 accessibility** (all screens now exist; app-wide focus ring fixed). Then C9 — metrics + risk-note + demo rehearsal.
 Known bug (logged in TODO): extraction over-abstains on clean stubs (document_type token-matched wrongly; date normalization too strict). Must be fixed before C4.
 
 ## Roles and ownership
@@ -13,7 +13,7 @@ Known bug (logged in TODO): extraction over-abstains on clean stubs (document_ty
 The only person who merges to main and the only person who edits CLAUDE.md/TODO.md (others request changes via PR comment). Keeps the Claude Code session that has full history.
 - C3: upload + field-review UI (evidence highlights, confirm/correct, version toast) — DONE
 - C4: confirmedProfile store, propagation, "what will update" preview — DONE
-- C7 UI half (taken over from Emmanuel, 2026-07-19): the Safety Test Panel page — five live proofs (refusal, injection via document + filename, unconfirmed-reuse block, deletion + cross-session rejection)
+- C7 UI half (taken over from Emmanuel, 2026-07-19): the Safety Test Panel page — five live proofs (refusal, injection via document + filename, unconfirmed-reuse block, deletion + cross-session rejection) — DONE (#/safety, merged 081686b); also fixed the app-wide keyboard focus ring
 - Merge every PR same-day; resolve any conflict with the branch owner present
 - Owns the GitHub repo settings and the demo machine
 
