@@ -6,7 +6,7 @@
 // shows the real citation objects). After completion the steps collapse to a
 // "Thought for Xs" disclosure so cards stay compact.
 import { useEffect, useRef, useState } from "react";
-import { Brain, Check, ChevronDown, Play, RotateCw, ShieldCheck, SquareArrowOutUpRight, type LucideIcon } from "lucide-react";
+import { Brain, Check, ChevronDown, Loader2, Play, RotateCw, ShieldCheck, SquareArrowOutUpRight, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,13 @@ export interface TraceSource {
   href?: string;
 }
 
-const STEP_MS = 640;
+// The trace plays like a chat's thinking: a "Thinking…" pill, then ONE step
+// alone, then the pill again, then the next step — only one thing on screen at
+// a time. The full list is available afterward under the "Thought for Xs"
+// disclosure. First think lingers ~2s; later thinks are shorter.
+const FIRST_THINK_MS = 1500;
+const THINK_MS = 850;
+const REVEAL_MS = 900;
 
 /** The step rows (pending dim icon → active pulsing icon → green check).
  *  Shared by the computation cards and the Ask trace. */
@@ -90,6 +96,33 @@ export function TraceStepList({
   );
 }
 
+/** The "Thinking…" pill shown between steps (decorative — the real outcome is
+ *  announced via the sr-only live region once the trace settles). */
+function TraceThinking() {
+  return (
+    <div className="flex items-center gap-2.5 rounded-md px-2 py-2 animate-fade-up-fast" aria-hidden="true">
+      <Loader2 className="size-4 animate-spin text-primary" />
+      <span className="text-sm text-subtle">Thinking…</span>
+    </div>
+  );
+}
+
+/** A single step, shown alone (the previous one has already disappeared). */
+function TraceActiveStep({ step }: { step: TraceStep }) {
+  const StepIcon = step.icon ?? Brain;
+  return (
+    <div className="flex items-start gap-2.5 rounded-md bg-status-info-bg/60 px-2 py-2 animate-fade-up-fast">
+      <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden="true">
+        <StepIcon className="size-3.5 animate-pulse text-primary" />
+      </span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-medium text-ink">{step.label}</span>
+        {step.detail && <span className="tnum text-xs text-subtle">{step.detail}</span>}
+      </span>
+    </div>
+  );
+}
+
 export function ComputationTrace({
   traceKey,
   icon: Icon,
@@ -128,7 +161,10 @@ export function ComputationTrace({
     manualIdle ? "idle" : autoAnimate ? "animating" : "done",
   );
   const [armed, setArmed] = useState(!autoAnimate || startDelayMs === 0);
-  const [activeStep, setActiveStep] = useState(autoAnimate ? 0 : steps.length);
+  // During the animation only ONE element is on screen: either the "Thinking…"
+  // pill (sub = "thinking") or a single step (sub = "step") at index `cursor`.
+  const [cursor, setCursor] = useState(0);
+  const [sub, setSub] = useState<"thinking" | "step">("thinking");
   const [playMode, setPlayMode] = useState(autoAnimate);
   const [runId, setRunId] = useState(0);
   const [live, setLive] = useState("");
@@ -144,15 +180,25 @@ export function ComputationTrace({
   useEffect(() => {
     if (phase !== "animating" || !armed) return;
     played.add(traceKey);
-    if (activeStep >= stepCount.current) {
-      setPhase("done");
-      setRunId((r) => r + 1);
-      setLive(announce);
-      return;
+    if (sub === "thinking") {
+      // Ponder, then reveal the current step alone.
+      const t = setTimeout(() => setSub("step"), cursor === 0 ? FIRST_THINK_MS : THINK_MS);
+      return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setActiveStep((s) => s + 1), STEP_MS);
+    // sub === "step": hold the step, then think again or finish.
+    const t = setTimeout(() => {
+      const next = cursor + 1;
+      if (next >= stepCount.current) {
+        setPhase("done");
+        setRunId((r) => r + 1);
+        setLive(announce);
+      } else {
+        setCursor(next);
+        setSub("thinking");
+      }
+    }, REVEAL_MS);
     return () => clearTimeout(t);
-  }, [phase, armed, activeStep, traceKey, announce]);
+  }, [phase, armed, sub, cursor, traceKey, announce]);
 
   const idle = phase === "idle";
   const animating = phase === "animating";
@@ -165,19 +211,22 @@ export function ComputationTrace({
     setArmed(true);
     setShowSteps(false);
     if (reduced) {
-      setActiveStep(steps.length);
       setRunId((r) => r + 1);
       setLive(announce);
       setPhase("done");
     } else {
-      setActiveStep(0);
+      setCursor(0);
+      setSub("thinking");
       setPhase("animating");
     }
   }
 
   const [showSteps, setShowSteps] = useState(false);
   const [showSources, setShowSources] = useState(false);
-  const thoughtSeconds = ((steps.length * STEP_MS) / 1000).toFixed(0);
+  const thoughtSeconds = (
+    (FIRST_THINK_MS + REVEAL_MS + Math.max(0, steps.length - 1) * (THINK_MS + REVEAL_MS)) /
+    1000
+  ).toFixed(0);
 
   return (
     <Card>
@@ -204,14 +253,20 @@ export function ComputationTrace({
           <div className="flex flex-col items-start gap-3">
             {idlePrompt && <p className="text-sm text-subtle">{idlePrompt}</p>}
             <Button size="sm" onClick={run}>
-              <Play aria-hidden="true" data-icon="inline-start" />
+              <Play aria-hidden="true" className="fill-current" />
               {startLabel}
             </Button>
           </div>
         )}
 
-        {/* Live steps during the animation. */}
-        {animating && <TraceStepList steps={steps} activeStep={activeStep} armed={armed} done={false} />}
+        {/* Live: one thing at a time — the "Thinking…" pill, then a single step,
+            then thinking again. `key` forces a remount so each fades in fresh. */}
+        {animating &&
+          (sub === "thinking" ? (
+            <TraceThinking key={`think-${cursor}`} />
+          ) : (
+            <TraceActiveStep key={`step-${cursor}`} step={steps[cursor]} />
+          ))}
 
         {/* Result reveals once the steps finish; remounts per run so the
             count-up / row stagger re-animate on (re)play. */}
