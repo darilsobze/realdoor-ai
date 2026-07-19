@@ -155,6 +155,21 @@
   100% { background-color: transparent; }
 }
 
+/* Staggered entrance for upload elements + progress stages (motion tokens). */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fade-up 300ms var(--ease-out-soft) both;
+  }
+  .animate-fade-up-fast {
+    animation: fade-up 150ms var(--ease-out-soft) both;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
