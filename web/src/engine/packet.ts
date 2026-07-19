@@ -35,6 +35,36 @@ export interface PacketSection {
   lines: string[];
 }
 
+/**
+ * Display lookups the UI supplies so the printed packet reads in plain
+ * language (labels, formatted values, document names, dates) WITHOUT the
+ * engine importing any UI/formatting code. Every function is optional and
+ * falls back to the raw value — the pure engine stays presentation-free.
+ */
+export interface PacketPresentation {
+  fieldLabel: (fieldName: string) => string;
+  formatValue: (fieldName: string, value: string | number) => string;
+  documentName: (documentId: string) => string;
+  requirementTitle: (requirementId: string) => string;
+  statusLabel: (status: string) => string;
+  calculationLabel: (calculationType: string) => string;
+  formatDate: (value: string) => string;
+}
+
+const IDENTITY: PacketPresentation = {
+  fieldLabel: (f) => f,
+  formatValue: (_f, v) => String(v),
+  documentName: (id) => id,
+  requirementTitle: (id) => id,
+  statusLabel: (s) => s,
+  calculationLabel: (t) => t,
+  formatDate: (s) => s,
+};
+
+function resolvePresentation(p?: Partial<PacketPresentation>): PacketPresentation {
+  return p ? { ...IDENTITY, ...p } : IDENTITY;
+}
+
 function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
@@ -65,11 +95,11 @@ export function buildPacket(input: BuildPacketInput): Packet {
   return PacketSchema.parse(packet);
 }
 
-function fieldEvidence(field: ProfileField): string {
-  if (!field.source_document_id || !field.page) return "evidence reference unavailable";
-  if (!field.bbox) return `${field.source_document_id}, page ${field.page}`;
-  const { x, y, width, height } = field.bbox;
-  return `${field.source_document_id}, page ${field.page}, box ${x},${y},${width},${height}`;
+/** Where a confirmed value was read — a page reference (print-appropriate;
+ *  the exact source box lives in the on-screen evidence view, not the packet). */
+function fieldEvidence(field: ProfileField, present: PacketPresentation): string {
+  if (!field.source_document_id || !field.page) return "confirmed by the renter";
+  return `from ${present.documentName(field.source_document_id)}, page ${field.page}`;
 }
 
 function citationFor(calculation: ComputedCalculation, citations: Citation[]): Citation | undefined {
@@ -83,12 +113,25 @@ function citationFor(calculation: ComputedCalculation, citations: Citation[]): C
     );
 }
 
-/** Canonical section content. The HTML preview and PDF renderer share this. */
-export function buildPacketSections(packet: Packet): PacketSection[] {
+/**
+ * Canonical section content. The HTML preview and PDF renderer share this,
+ * so passing the same `presentation` to both keeps them identical (parity =
+ * same sections, values, order, manifest). With no presentation the output
+ * is raw — the engine never depends on UI formatting.
+ */
+export function buildPacketSections(
+  packet: Packet,
+  presentation?: Partial<PacketPresentation>,
+): PacketSection[] {
+  const p = resolvePresentation(presentation);
   const sections: PacketSection[] = [
     {
       name: "Cover",
-      lines: [packet.cover.title, `Prepared: ${packet.cover.prepared_on}`, packet.cover.disclaimer],
+      lines: [
+        packet.cover.title,
+        `Prepared ${p.formatDate(packet.cover.prepared_on)}`,
+        packet.cover.disclaimer,
+      ],
     },
     {
       name: "Confirmed values",
@@ -96,7 +139,7 @@ export function buildPacketSections(packet: Packet): PacketSection[] {
         packet.confirmed_fields.length > 0
           ? packet.confirmed_fields.map(
               (field) =>
-                `${field.field_name}: ${String(field.confirmed_value)} (${fieldEvidence(field)})`,
+                `${p.fieldLabel(field.field_name)}: ${p.formatValue(field.field_name, field.confirmed_value ?? "")} — ${fieldEvidence(field, p)}`,
             )
           : ["No confirmed values."],
     },
@@ -107,12 +150,12 @@ export function buildPacketSections(packet: Packet): PacketSection[] {
           ? packet.calculations.flatMap((calculation) => {
               const citation = citationFor(calculation, packet.citations);
               const lines = [
-                `${calculation.calculation_type}: ${calculation.formula}`,
-                `Formula ${calculation.formula_version}; rounding: ${calculation.rounding_rule}; rule: ${calculation.source_rule_id ?? "none"}`,
+                `${p.calculationLabel(calculation.calculation_type)}: ${calculation.formula}`,
+                `Method: formula ${calculation.formula_version}, ${calculation.rounding_rule.replaceAll("_", " ")}, rule ${calculation.source_rule_id ?? "none"}`,
               ];
               if (citation) {
                 lines.push(
-                  `Citation: ${citation.official_source}; ${citation.section ?? "section not listed"}; page ${citation.page ?? "not listed"}; effective ${citation.effective_date ?? "corpus freeze date"}`,
+                  `Source: ${citation.official_source} — ${citation.section ?? "section not listed"}, page ${citation.page ?? "not listed"}, effective ${p.formatDate(citation.effective_date ?? packet.manifest.created_at)}`,
                 );
               }
               return lines;
@@ -121,10 +164,11 @@ export function buildPacketSections(packet: Packet): PacketSection[] {
     },
     {
       name: "Checklist",
-      lines: packet.checklist.map(
-        (item) =>
-          `${item.requirement_id} - ${item.status}: ${item.explanation} Matched documents: ${item.matched_document_ids.join(", ") || "none"}.`,
-      ),
+      lines: packet.checklist.map((item) => {
+        const matched = item.matched_document_ids.map(p.documentName).join(", ");
+        const suffix = matched ? ` Matched: ${matched}.` : "";
+        return `${p.requirementTitle(item.requirement_id)} — ${p.statusLabel(item.status)}: ${item.explanation}${suffix}`;
+      }),
     },
     {
       name: "Unresolved items",
@@ -139,7 +183,7 @@ export function buildPacketSections(packet: Packet): PacketSection[] {
         `Profile version: ${packet.manifest.profile_version}`,
         `Rule version: ${packet.manifest.rule_version}`,
         `Checklist version: ${packet.manifest.checklist_version}`,
-        `Included documents: ${packet.manifest.included_document_ids.join(", ") || "none"}`,
+        `Included documents: ${packet.manifest.included_document_ids.map(p.documentName).join(", ") || "none"}`,
         `Sections: ${packet.manifest.sections.join(" > ")}`,
       ],
     },
