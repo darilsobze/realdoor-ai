@@ -41,6 +41,7 @@ Runs their own Claude Code sessions scoped accordingly.
 - Branch per task, named `daril/c3-review-ui`, `hoan/fix-abstention`, `emmanuel/c5-checklist`, etc. Short-lived: open PR the same day, merge within 24h max — long-lived branches are the #1 conflict source.
 - Rebase or merge main into your branch before opening the PR; you fix your own conflicts.
 - Every PR: tests green + one-line "how I verified" (screenshot or command output).
+- "Verified" in a PR means verified on the demo machine (Daril's) — OCR and extraction results differ per environment, and the demo machine is the one that counts.
 - Push at every milestone; the remote is the backup.
 
 ## Dependency order (who blocks whom)
