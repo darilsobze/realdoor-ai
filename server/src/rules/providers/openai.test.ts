@@ -50,4 +50,34 @@ describe("openaiRulesProvider", () => {
       }),
     );
   });
+
+  it("uses the same deterministic reasoning configuration as extraction", async () => {
+    createMock.mockResolvedValue({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            answer: "May 1, 2026.",
+            rule_id: "HUD-MTSP-001",
+            abstained: false,
+            requested_program_id: "LIHTC",
+            requested_metro_id: "boston_cambridge_quincy_ma_nh_hmfa",
+            requested_rule_year: 2026,
+          }),
+          refusal: null,
+        },
+      }],
+    });
+
+    await openaiRulesProvider.requestAnswer(
+      "When do the FY 2026 limits take effect?",
+      getRulesCorpus(),
+    );
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reasoning_effort: "medium",
+        seed: 20260718,
+      }),
+    );
+  });
 });
